@@ -17,7 +17,7 @@ import { spawnGustav } from "../entities/gustav.js";
 import { spawnCharacter } from "../entities/npc.js";
 import { clearOverlay, uiRoot, makeButton, toast, isUiBusy } from "../ui/overlay.js";
 import { getState, saveGame } from "../systems/save.js";
-import { sfx } from "../systems/audio.js";
+import { sfx, setMusicMood } from "../systems/audio.js";
 import { createNeeds } from "../systems/needs.js";
 import { createStrawberries } from "../systems/strawberries.js";
 import { createWornPath } from "../systems/wornPath.js";
@@ -60,8 +60,9 @@ export function registerGardenScene() {
     }
     const season = getSeason(state.season);
 
-    // apply the season skin
+    // apply the season skin + music mood
     k.setBackground(k.rgb(...season.sky));
+    setMusicMood(season.key);
     buildGround(season);
     buildStructures();
     buildProps(season);

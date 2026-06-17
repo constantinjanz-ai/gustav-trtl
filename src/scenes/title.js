@@ -4,7 +4,7 @@ import k, { GAME_WIDTH, GAME_HEIGHT } from "../config/kaplay.js";
 import STRINGS from "../data/strings.de.js";
 import { clearOverlay, uiRoot, makeButton } from "../ui/overlay.js";
 import { openOptions } from "../ui/options.js";
-import { startAudio } from "../systems/audio.js";
+import { startAudio, setMusicMood } from "../systems/audio.js";
 import { hasSave, newGame, loadGame } from "../systems/save.js";
 
 export function registerTitleScene() {
@@ -18,8 +18,9 @@ function buildBackdrop() {
   const W = GAME_WIDTH;
   const H = GAME_HEIGHT;
 
-  // reset the sky (the garden may have tinted it for a season)
+  // reset the sky + music to the bright theme (garden may have changed them)
   k.setBackground(k.rgb(173, 216, 222));
+  setMusicMood("fruehling");
 
   // soft sun
   k.add([

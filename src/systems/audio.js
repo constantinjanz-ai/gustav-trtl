@@ -96,6 +96,17 @@ const N = {
 const BEAT = 0.62; // slow, lilting waltz
 const BAR = BEAT * 3;
 
+// Each season tints the same cozy waltz: a key shift, a tempo nudge, and a
+// texture change. Picked up seamlessly at the next loop (no glitch).
+const MOODS = {
+  fruehling: { transpose: 0, beatMul: 1.0, bass: 0.14, pad: 0.05, mel: 0.42 },
+  sommer: { transpose: 2, beatMul: 0.95, bass: 0.15, pad: 0.05, mel: 0.44 },
+  herbst: { transpose: -3, beatMul: 1.12, bass: 0.13, pad: 0.055, mel: 0.4 },
+  winter: { transpose: -5, beatMul: 1.35, bass: 0.09, pad: 0.06, mel: 0.34, sparse: true },
+};
+let mood = MOODS.fruehling;
+const semi = (f, n) => f * Math.pow(2, n / 12);
+
 // each bar: pad chord (sustained), bass root, melody [beatOffset, note, beats]
 const SONG = [
   { pad: ["C4", "E4", "G4"], bass: "C3", mel: [[0, "E5", 1], [1, "G5", 1], [2, "C5", 1]] },
@@ -126,19 +137,24 @@ function voice(freq, when, dur, peak, type, attack, dest) {
 function scheduleSong() {
   if (!state.ctx) return;
   const dest = state.musicGain;
+  const tr = mood.transpose;
+  const beat = BEAT * mood.beatMul;
+  const bar = beat * 3;
   let t = state.ctx.currentTime + 0.15;
-  for (const bar of SONG) {
+  SONG.forEach((b, i) => {
     // soft sustained pad
-    for (const n of bar.pad) voice(N[n], t, BAR * 0.98, 0.05, "sine", 0.4, dest);
-    // gentle bass
-    voice(N[bar.bass], t, BEAT * 2.4, 0.14, "sine", 0.03, dest);
-    // music-box melody (sine pluck)
-    for (const [off, note, beats] of bar.mel) {
-      voice(N[note], t + off * BEAT, Math.min(beats * BEAT, 0.9), 0.42, "sine", 0.01, dest);
+    for (const n of b.pad) voice(semi(N[n], tr), t, bar * 0.98, mood.pad, "sine", 0.4, dest);
+    // gentle bass (skipped on odd bars in the hushed winter texture)
+    if (!(mood.sparse && i % 2 === 1)) {
+      voice(semi(N[b.bass], tr), t, beat * 2.4, mood.bass, "sine", 0.03, dest);
     }
-    t += BAR;
-  }
-  const loopMs = SONG.length * BAR * 1000;
+    // music-box melody (sine pluck)
+    for (const [off, note, beats] of b.mel) {
+      voice(semi(N[note], tr), t + off * beat, Math.min(beats * beat, 0.95), mood.mel, "sine", 0.01, dest);
+    }
+    t += bar;
+  });
+  const loopMs = SONG.length * bar * 1000;
   state.musicTimer = setTimeout(scheduleSong, loopMs - 60);
 }
 
@@ -253,6 +269,11 @@ export function setSound(on) {
   state.soundOn = on;
   savePrefs();
   if (state.sfxGain) state.sfxGain.gain.value = on ? 0.5 : 0;
+}
+
+// Switch the season mood — applied seamlessly at the next loop.
+export function setMusicMood(seasonKey) {
+  mood = MOODS[seasonKey] || MOODS.fruehling;
 }
 
 export function isMusicOn() {
