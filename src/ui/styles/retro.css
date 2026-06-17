@@ -1,0 +1,318 @@
+/* Gustavs Garten — glossy Web 2.0 / Flash-game retro UI.
+   Pixel-art world lives on the canvas; everything in here is the shiny overlay. */
+
+:root {
+  /* cozy palette */
+  --gg-green: #5b8c3e;
+  --gg-green-dark: #3f6b2a;
+  --gg-grass: #7bb05a;
+  --gg-cream: #fff7e6;
+  --gg-paper: #fdeccb;
+  --gg-wood: #6b4a2b;
+  --gg-wood-light: #8a6238;
+  --gg-ink: #3a2a1a;
+  --gg-strawberry: #e8413f;
+  --gg-sun: #ffce4a;
+  --gg-pillow: #b88bd6;
+  --gg-gluck: #ff8fbf;
+
+  /* glossy button base hue (warm leafy green) */
+  --btn-top: #8fd06a;
+  --btn-bottom: #4f8c33;
+  --btn-border: #2f5a1d;
+
+  --font-pixel: "Silkscreen", monospace;
+  --font-read: "VT323", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #2a3a22;
+  overflow: hidden;
+  font-family: var(--font-read);
+  -webkit-font-smoothing: none;
+}
+
+#game-root {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* The HTML UI layer sits on top of the canvas. It ignores pointer events by
+   default so the game receives clicks; individual panels re-enable them. */
+#ui-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-family: var(--font-read);
+  color: var(--gg-ink);
+  user-select: none;
+}
+
+#ui-root .screen,
+#ui-root .panel,
+#ui-root .hud {
+  pointer-events: auto;
+}
+
+/* ---------- Glossy buttons ---------- */
+.gg-btn {
+  pointer-events: auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  padding: 14px 28px;
+  margin: 8px 0;
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  border: 3px solid var(--btn-border);
+  border-radius: 16px;
+  background: linear-gradient(
+    to bottom,
+    var(--btn-top) 0%,
+    var(--btn-top) 48%,
+    var(--btn-bottom) 52%,
+    var(--btn-bottom) 100%
+  );
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 5px 0 var(--btn-border),
+    0 8px 12px rgba(0, 0, 0, 0.4);
+  transition:
+    filter 0.08s ease,
+    transform 0.05s ease,
+    box-shadow 0.05s ease;
+}
+
+/* the shiny highlight strip near the top */
+.gg-btn::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 5px;
+  height: 38%;
+  border-radius: 12px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0)
+  );
+  pointer-events: none;
+}
+
+.gg-btn:hover {
+  filter: brightness(1.1);
+}
+
+.gg-btn:active {
+  transform: translateY(5px);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.4),
+    0 0 0 var(--btn-border),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.gg-btn.is-disabled {
+  filter: grayscale(0.7) brightness(0.85);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* secondary button hue (warm wood) */
+.gg-btn.gg-btn--wood {
+  --btn-top: #b78a4f;
+  --btn-bottom: #7c5226;
+  --btn-border: #4f3315;
+}
+
+/* ---------- Panels ---------- */
+.gg-panel {
+  pointer-events: auto;
+  background: linear-gradient(to bottom, #fffdf6, var(--gg-paper));
+  border: 4px solid var(--gg-wood);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(0, 0, 0, 0.45);
+  padding: 22px 26px;
+}
+
+.gg-panel h2 {
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  margin: 0 0 14px;
+  color: var(--gg-wood);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Title screen ---------- */
+.title-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 8vh;
+  text-align: center;
+}
+
+.title-logo {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: clamp(36px, 7vw, 84px);
+  line-height: 1;
+  color: var(--gg-sun);
+  -webkit-text-stroke: 3px var(--gg-wood);
+  text-shadow:
+    0 4px 0 var(--gg-wood),
+    0 8px 14px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  animation: logo-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes logo-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+.title-subtitle {
+  font-family: var(--font-read);
+  font-size: clamp(18px, 2.6vw, 26px);
+  color: var(--gg-cream);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  margin: 10px 0 26px;
+}
+
+.title-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* small footer credit */
+.title-credit {
+  position: absolute;
+  bottom: 12px;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  color: var(--gg-cream);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* ---------- Modal overlay (Optionen etc.) ---------- */
+.gg-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 30, 15, 0.55);
+  pointer-events: auto;
+}
+
+.gg-modal {
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.gg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 24px;
+  margin: 12px 0;
+}
+
+/* toggle pill */
+.gg-toggle {
+  pointer-events: auto;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 3px solid var(--btn-border);
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.6);
+}
+
+.gg-toggle.is-off {
+  --btn-top: #b0b0b0;
+  --btn-bottom: #777;
+  --btn-border: #555;
+}
+
+/* toast (e.g. "Gespeichert!") */
+.gg-toast {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(to bottom, #6fb84a, #3f6b2a);
+  border: 3px solid #2f5a1d;
+  border-radius: 12px;
+  padding: 10px 18px;
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.6),
+    0 6px 14px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  animation: toast 1.8s ease forwards;
+  z-index: 50;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+}
