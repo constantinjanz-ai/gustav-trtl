@@ -108,26 +108,29 @@ const DIALOGUE = {
 
   constantin(questState) {
     const l = lineFor("constantin");
-    // TODO(in-jokes): the user will add personal in-jokes for Constantin here.
     switch (questState) {
       case "none":
         return [
           l("Also… ich bin der Neue. Maria hat gesagt, ich soll viel von dir lernen."),
-          l("Du machst ja eigentlich nur Sonne, Snacks, Nickerchen. Genie. 😎"),
-          l("Halt mal kurz still, ich will ein Foto für das Album machen!"),
+          l("Check das mal, Gustav: du machst nur Sonne, Snacks, Nickerchen."),
+          l("Das ist ja quasi der perfekte Startup-Lifestyle. Ich vibe-code dir die Roadmap. 😎"),
+          l("Halt mal kurz still, ich will ein Foto fürs Album machen!"),
         ];
       case "active":
         return [
-          l("Ganz ruhig bleiben… genau so… nicht weglaufen!"),
-          l("Bleib einfach kurz neben mir stehen, dann hab ich's."),
+          l("Ganz ruhig… genau so… nicht weglaufen, sonst muss ich neu deployen."),
+          l("Bleib einfach kurz neben mir stehen, dann hab ich's im Kasten."),
         ];
       case "ready":
         return [
-          l("Perfekt! Das schönste Schildkröten-Porträt aller Zeiten. 📸"),
-          l("Maria hatte recht: von dir kann man echt was lernen, Gustav."),
+          l("Perfekt! Check das mal — das schönste Schildkröten-Porträt aller Zeiten. 📸"),
+          l("Maria hatte recht, von dir lernt man echt was. Und Gustav … I see you. 💚"),
         ];
       default:
-        return [l("Sonne, Snack, Nickerchen. Ich arbeite dran, Meister. 🐢")];
+        return [
+          l("Sonne, Snack, Nickerchen — beste Roadmap ever. 🐢"),
+          l("War is over, kleiner Freund. Jetzt wird nur noch gechillt."),
+        ];
     }
   },
 };
