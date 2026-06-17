@@ -1,7 +1,8 @@
-// Procedural audio — no binary assets needed for M1.
-// SFX are short WebAudio oscillator blips (Web 2.0 / Flash-game flavour).
-// Music is a gentle, slow, looping arpeggio scheduled ahead of time.
-// TODO(M4): swap the music loop for a proper soft chiptune track in assets/audio/.
+// Procedural audio — no binary assets needed.
+// Music: a gentle, Ghibli-flavoured music-box waltz (warm sine voices through a
+//   soft lowpass + dreamy delay). Cozy and nostalgic, loops seamlessly.
+// SFX: low, full "thock" clicks (a keyboard-ish body + a soft noise transient)
+//   instead of high blips.
 
 const PREFS_KEY = "gg_audio_prefs";
 
@@ -10,6 +11,7 @@ const state = {
   master: null,
   musicGain: null,
   sfxGain: null,
+  noiseBuf: null,
   musicOn: true,
   soundOn: true,
   musicTimer: null,
@@ -43,50 +45,77 @@ function savePrefs() {
 function ensureContext() {
   if (state.ctx) return;
   const AC = window.AudioContext || window.webkitAudioContext;
-  state.ctx = new AC();
-  state.master = state.ctx.createGain();
-  state.master.gain.value = 0.5;
-  state.master.connect(state.ctx.destination);
+  const ctx = new AC();
+  state.ctx = ctx;
 
-  state.musicGain = state.ctx.createGain();
-  state.musicGain.gain.value = state.musicOn ? 0.18 : 0;
-  state.musicGain.connect(state.master);
+  state.master = ctx.createGain();
+  state.master.gain.value = 0.55;
+  state.master.connect(ctx.destination);
 
-  state.sfxGain = state.ctx.createGain();
+  // --- music chain: gain -> warm lowpass -> master, with a dreamy delay tail ---
+  state.musicGain = ctx.createGain();
+  state.musicGain.gain.value = state.musicOn ? 0.16 : 0;
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 2400;
+  lp.Q.value = 0.3;
+  state.musicGain.connect(lp);
+  lp.connect(state.master);
+
+  const delay = ctx.createDelay();
+  delay.delayTime.value = 0.34;
+  const fb = ctx.createGain();
+  fb.gain.value = 0.28;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.5;
+  lp.connect(delay);
+  delay.connect(fb);
+  fb.connect(delay);
+  delay.connect(wet);
+  wet.connect(state.master);
+
+  // --- sfx ---
+  state.sfxGain = ctx.createGain();
   state.sfxGain.gain.value = state.soundOn ? 0.5 : 0;
   state.sfxGain.connect(state.master);
+
+  // short white-noise buffer for click transients
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  state.noiseBuf = buf;
 }
 
-// A soft, cozy little loop in C major-ish pentatonic — unobtrusive.
-const MELODY = [
-  523.25, 659.25, 783.99, 659.25, // C5 E5 G5 E5
-  587.33, 698.46, 880.0, 698.46, // D5 F5 A5 F5
-  523.25, 659.25, 783.99, 1046.5, // C5 E5 G5 C6
-  493.88, 587.33, 783.99, 587.33, // B4 D5 G5 D5
+// ---------- music ----------
+const N = {
+  D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.0, A3: 220.0, B3: 246.94, C3: 130.81,
+  C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88,
+  C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, B5: 987.77, C6: 1046.5,
+};
+const BEAT = 0.62; // slow, lilting waltz
+const BAR = BEAT * 3;
+
+// each bar: pad chord (sustained), bass root, melody [beatOffset, note, beats]
+const SONG = [
+  { pad: ["C4", "E4", "G4"], bass: "C3", mel: [[0, "E5", 1], [1, "G5", 1], [2, "C5", 1]] },
+  { pad: ["G4", "B4", "D5"], bass: "B3", mel: [[0, "D5", 1], [1, "G5", 1], [2, "B4", 1]] },
+  { pad: ["E4", "A4", "C5"], bass: "A3", mel: [[0, "C5", 1], [1, "E5", 1], [2, "A4", 1]] },
+  { pad: ["F4", "A4", "C5"], bass: "F3", mel: [[0, "A4", 1], [1, "C5", 1], [2, "F4", 1]] },
+  { pad: ["C4", "E4", "G4"], bass: "E3", mel: [[0, "E5", 1.5], [1.5, "D5", 0.5], [2, "C5", 1]] },
+  { pad: ["F4", "A4", "C5"], bass: "F3", mel: [[0, "F5", 1], [1, "E5", 1], [2, "D5", 1]] },
+  { pad: ["G4", "B4", "F5"], bass: "G3", mel: [[0, "D5", 1], [1, "F5", 0.5], [1.5, "E5", 0.5], [2, "D5", 1]] },
+  { pad: ["C4", "E4", "G4"], bass: "C3", mel: [[0, "C5", 3]] },
 ];
-const NOTE_LEN = 0.42; // seconds per note — slow and gentle
 
-function scheduleMusic() {
-  if (!state.ctx) return;
-  const ctx = state.ctx;
-  let t = ctx.currentTime + 0.1;
-  for (const freq of MELODY) {
-    playNote(freq, t, NOTE_LEN, "triangle", state.musicGain, 0.9);
-    // soft lower harmony every other beat
-    t += NOTE_LEN;
-  }
-  const loopMs = MELODY.length * NOTE_LEN * 1000;
-  state.musicTimer = setTimeout(scheduleMusic, loopMs - 60);
-}
-
-function playNote(freq, when, dur, type, dest, peak) {
+function voice(freq, when, dur, peak, type, attack, dest) {
   const ctx = state.ctx;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   osc.type = type;
   osc.frequency.value = freq;
   g.gain.setValueAtTime(0, when);
-  g.gain.linearRampToValueAtTime(peak, when + 0.04);
+  g.gain.linearRampToValueAtTime(peak, when + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
   osc.connect(g);
   g.connect(dest);
@@ -94,8 +123,82 @@ function playNote(freq, when, dur, type, dest, peak) {
   osc.stop(when + dur + 0.05);
 }
 
-// ---- public API ----
+function scheduleSong() {
+  if (!state.ctx) return;
+  const dest = state.musicGain;
+  let t = state.ctx.currentTime + 0.15;
+  for (const bar of SONG) {
+    // soft sustained pad
+    for (const n of bar.pad) voice(N[n], t, BAR * 0.98, 0.05, "sine", 0.4, dest);
+    // gentle bass
+    voice(N[bar.bass], t, BEAT * 2.4, 0.14, "sine", 0.03, dest);
+    // music-box melody (sine pluck)
+    for (const [off, note, beats] of bar.mel) {
+      voice(N[note], t + off * BEAT, Math.min(beats * BEAT, 0.9), 0.42, "sine", 0.01, dest);
+    }
+    t += BAR;
+  }
+  const loopMs = SONG.length * BAR * 1000;
+  state.musicTimer = setTimeout(scheduleSong, loopMs - 60);
+}
 
+// ---------- sfx ----------
+// a low, full "thock" — keyboard-ish body + soft noise click
+function thock(freq, dur, peak, withNoise) {
+  const ctx = state.ctx;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq * 1.7, t);
+  osc.frequency.exponentialRampToValueAtTime(freq, t + 0.03);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g);
+  g.connect(state.sfxGain);
+  osc.start(t);
+  osc.stop(t + dur + 0.03);
+
+  if (withNoise) {
+    const src = ctx.createBufferSource();
+    src.buffer = state.noiseBuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1700;
+    bp.Q.value = 0.7;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(peak * 0.5, t);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+    src.connect(bp);
+    bp.connect(ng);
+    ng.connect(state.sfxGain);
+    src.start(t);
+    src.stop(t + 0.04);
+  }
+}
+
+// a soft warm tone (for confirms / happy moments)
+function warm(freqs, dur, peak) {
+  const ctx = state.ctx;
+  const t = ctx.currentTime;
+  freqs.forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = f;
+    const start = t + i * 0.06;
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(peak, start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(g);
+    g.connect(state.sfxGain);
+    osc.start(start);
+    osc.stop(start + dur + 0.05);
+  });
+}
+
+// ---------- public API ----------
 export function initAudio() {
   loadPrefs();
 }
@@ -106,41 +209,44 @@ export function startAudio() {
   if (state.ctx.state === "suspended") state.ctx.resume();
   if (!state.started) {
     state.started = true;
-    if (state.musicOn) scheduleMusic();
+    if (state.musicOn) scheduleSong();
   }
 }
 
-const SFX = {
-  hover: { freq: 660, dur: 0.06, type: "square", peak: 0.25 },
-  click: { freq: 880, dur: 0.09, type: "square", peak: 0.4 },
-  confirm: { freq: 988, dur: 0.16, type: "triangle", peak: 0.4 },
-  back: { freq: 440, dur: 0.1, type: "square", peak: 0.3 },
-  eat: { freq: 740, dur: 0.12, type: "triangle", peak: 0.4 },
-  happy: { freq: 1046, dur: 0.22, type: "triangle", peak: 0.4 },
-};
-
 export function sfx(name) {
-  const def = SFX[name];
-  if (!def) return;
   ensureContext();
   if (!state.soundOn) return;
   if (state.ctx.state === "suspended") state.ctx.resume();
-  playNote(
-    def.freq,
-    state.ctx.currentTime,
-    def.dur,
-    def.type,
-    state.sfxGain,
-    def.peak,
-  );
+  switch (name) {
+    case "hover":
+      thock(150, 0.045, 0.18, true); // subtle low tick
+      break;
+    case "click":
+      thock(165, 0.075, 0.6, true); // full low thock
+      break;
+    case "back":
+      thock(125, 0.08, 0.5, true);
+      break;
+    case "confirm":
+      warm([N.G4, N.C5], 0.22, 0.32);
+      break;
+    case "eat":
+      thock(240, 0.1, 0.34, false); // soft warm "nom"
+      break;
+    case "happy":
+      warm([N.C5, N.E5, N.G5], 0.26, 0.3);
+      break;
+    default:
+      thock(165, 0.07, 0.5, true);
+  }
 }
 
 export function setMusic(on) {
   state.musicOn = on;
   savePrefs();
   if (!state.ctx) return;
-  state.musicGain.gain.value = on ? 0.18 : 0;
-  if (on && state.started && !state.musicTimer) scheduleMusic();
+  state.musicGain.gain.value = on ? 0.16 : 0;
+  if (on && state.started && !state.musicTimer) scheduleSong();
 }
 
 export function setSound(on) {
