@@ -29,12 +29,14 @@ const PORTRAITS = {
   <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
     <rect width="80" height="80" fill="#cfe6d6"/>
     <rect x="14" y="62" width="52" height="18" fill="#c8283a"/>
-    <!-- long hair behind -->
-    <rect x="16" y="16" width="48" height="58" fill="#e1c878"/>
+    <!-- long hair behind: blonde/brunette mix -->
+    <rect x="16" y="16" width="48" height="58" fill="#b59960"/>
+    <rect x="16" y="40" width="14" height="34" fill="#9c8150"/>
+    <rect x="50" y="40" width="14" height="34" fill="#c4a870"/>
     <!-- face -->
     <rect x="27" y="22" width="26" height="30" fill="#f5d6bd"/>
     <!-- fringe -->
-    <rect x="25" y="16" width="30" height="9" fill="#ecd182"/>
+    <rect x="25" y="16" width="30" height="9" fill="#c2a86a"/>
     <!-- gold hoop earrings -->
     <rect x="23" y="40" width="3" height="3" fill="#e6b422"/><rect x="54" y="40" width="3" height="3" fill="#e6b422"/>
     <!-- blue eyes -->
@@ -67,15 +69,17 @@ const PORTRAITS = {
   jan: `
   <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
     <rect width="80" height="80" fill="#d6e2cf"/>
-    <rect x="10" y="58" width="60" height="22" fill="#3f7048"/>
-    <!-- round face -->
-    <rect x="24" y="20" width="32" height="32" fill="#ecc4a2"/>
+    <!-- narrower shoulders (lean) -->
+    <rect x="20" y="60" width="40" height="20" fill="#3f7048"/>
+    <!-- slimmer face -->
+    <rect x="27" y="20" width="26" height="32" fill="#dfb48c"/>
     <!-- dark-brown short hair -->
-    <rect x="22" y="14" width="36" height="11" fill="#4a3522"/>
-    <rect x="22" y="22" width="5" height="8" fill="#4a3522"/><rect x="53" y="22" width="5" height="8" fill="#4a3522"/>
-    <rect x="32" y="33" width="3" height="3" fill="#2a1c12"/><rect x="45" y="33" width="3" height="3" fill="#2a1c12"/>
-    <rect x="34" y="44" width="12" height="2" fill="#b56a52"/>
-    <rect x="32" y="42" width="2" height="2" fill="#b56a52"/><rect x="46" y="42" width="2" height="2" fill="#b56a52"/>
+    <rect x="25" y="14" width="30" height="10" fill="#4a3522"/>
+    <rect x="25" y="21" width="4" height="7" fill="#4a3522"/><rect x="51" y="21" width="4" height="7" fill="#4a3522"/>
+    <rect x="33" y="32" width="3" height="3" fill="#2a1c12"/><rect x="45" y="32" width="3" height="3" fill="#2a1c12"/>
+    <!-- light stubble -->
+    <rect x="29" y="44" width="22" height="6" fill="#9c7e5c" opacity="0.45"/>
+    <rect x="34" y="42" width="12" height="2" fill="#b56a52"/>
   </svg>`,
 
   // Constantin (the player's in-world self): brown wavy hair, glasses, stubble,
@@ -83,10 +87,11 @@ const PORTRAITS = {
   constantin: `
   <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
     <rect width="80" height="80" fill="#cfe0e6"/>
-    <!-- varsity jacket: green body, yellow collar/trim -->
+    <!-- varsity jacket: green body with yellow arms -->
     <rect x="12" y="58" width="56" height="22" fill="#2f7d4f"/>
-    <rect x="12" y="58" width="56" height="4" fill="#e8c33a"/>
-    <rect x="36" y="58" width="8" height="22" fill="#e8c33a"/>
+    <rect x="12" y="58" width="13" height="22" fill="#e8c33a"/>
+    <rect x="55" y="58" width="13" height="22" fill="#e8c33a"/>
+    <rect x="24" y="58" width="32" height="4" fill="#e8c33a"/>
     <!-- gold chain -->
     <rect x="34" y="54" width="12" height="2" fill="#e8c33a"/>
     <!-- face -->
@@ -124,7 +129,8 @@ export const CHARACTERS = {
     appearsFrom: "sommer",
     spawn: { x: 336, y: 286 },
     sprite: {
-      skin: [245, 214, 189], hair: [225, 200, 120], hairStyle: "long",
+      // a blonde/brunette mix, not pure blonde
+      skin: [245, 214, 189], hair: [176, 150, 92], hairStyle: "long",
       top: [200, 40, 58], earrings: true, build: "normal",
     },
   },
@@ -146,8 +152,10 @@ export const CHARACTERS = {
     appearsFrom: "sommer",
     spawn: { x: 176, y: 286 },
     sprite: {
+      // college/varsity jacket: green body with yellow arms
       skin: [231, 189, 151], hair: [107, 74, 43], hairStyle: "wavy",
-      top: [47, 125, 79], accent: [232, 195, 58], glasses: true, build: "normal",
+      top: [47, 125, 79], sleeves: [232, 195, 58], accent: [232, 195, 58],
+      stubble: true, glasses: true, build: "normal",
     },
   },
   jan: {
@@ -157,8 +165,9 @@ export const CHARACTERS = {
     appearsFrom: "sommer",
     spawn: { x: 416, y: 286 },
     sprite: {
-      skin: [236, 196, 162], hair: [74, 53, 34], hairStyle: "short",
-      top: [63, 112, 72], build: "broad",
+      // tall and lean, brown hair, light stubble — distinct from Magda
+      skin: [223, 180, 142], hair: [74, 53, 34], hairStyle: "short",
+      top: [63, 112, 72], stubble: true, build: "tall",
     },
   },
 };
