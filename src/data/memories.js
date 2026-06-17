@@ -50,6 +50,20 @@ export const MEMORIES = [
     icon: "🚪",
     photo: null, // TODO(M5)
   },
+  {
+    id: "herbst_blaetter",
+    title: "Buntes Herbstlaub",
+    caption: "Gustav raschelt durchs bunte Laub und sammelt mit Jan die schönsten Blätter.",
+    icon: "🍂",
+    photo: null, // TODO(M5)
+  },
+  {
+    id: "winterkiste",
+    title: "Die Winterkiste",
+    caption: "Tata zimmert eine kuschelige, mit Laub gepolsterte Kiste — bald wird geschlafen.",
+    icon: "📦",
+    photo: null, // TODO(M5)
+  },
 ];
 
 export function getMemory(id) {

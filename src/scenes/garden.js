@@ -27,6 +27,7 @@ import { openScrapbook } from "../ui/scrapbook.js";
 import { playTeezeit } from "../ui/teezeit.js";
 import { CHARACTERS } from "../data/characters.js";
 import { npcDialogue } from "../data/dialogue.js";
+import { questForGiver } from "../data/quests.js";
 import { getSeason, nextSeason, SEASON_ORDER } from "../data/seasons.js";
 import { showChapterCard } from "../ui/chapterCard.js";
 
@@ -39,11 +40,15 @@ export function registerGardenScene() {
 
     const state = getState();
 
-    // Chapter progression: once the Frühling Teezeit is done, the garden moves
-    // into Sommer (also lifts older saves into the new content on entry).
+    // Chapter progression on entry:
+    //  Frühling -> Sommer once the first Teezeit is done,
+    //  Sommer  -> Herbst once the gate-escape gag is done.
     if (state.flags?.teezeitSeen && state.season === "fruehling") {
       state.flags.fruehling_seen = true; // don't replay the Frühling card
       state.season = "sommer";
+    }
+    if (state.flags?.gateGagSeen && state.season === "sommer") {
+      state.season = "herbst";
     }
     const season = getSeason(state.season);
 
@@ -59,6 +64,31 @@ export function registerGardenScene() {
     if (!state.flags[seenKey]) {
       state.flags[seenKey] = true;
       showChapterCard(season);
+    }
+
+    // ambient drifting leaves in Herbst (purely decorative)
+    if (season.key === "herbst") {
+      const cols = [[214, 130, 56], [196, 90, 50], [226, 168, 60], [180, 110, 70]];
+      for (let i = 0; i < 10; i++) {
+        const leaf = k.add([
+          k.circle(2.6),
+          k.color(...cols[i % cols.length]),
+          k.opacity(0.85),
+          k.pos(k.rand(20, GARDEN_W - 20), k.rand(0, GARDEN_H)),
+          k.anchor("center"),
+          k.z(8),
+          { vy: k.rand(8, 16), sway: k.rand(6, 14), t: k.rand(0, 6) },
+        ]);
+        leaf.onUpdate(() => {
+          leaf.t += k.dt();
+          leaf.pos.y += leaf.vy * k.dt();
+          leaf.pos.x += Math.sin(leaf.t * 2) * leaf.sway * k.dt();
+          if (leaf.pos.y > GARDEN_H + 6) {
+            leaf.pos.y = -6;
+            leaf.pos.x = k.rand(20, GARDEN_W - 20);
+          }
+        });
+      }
     }
 
     // worn path renders under Gustav, so build it before he spawns
@@ -124,18 +154,44 @@ export function registerGardenScene() {
         dandelions.push(d);
       }
     }
+    // Jan's Herbst leaves: collectible fallen leaves on the lawn.
+    let leaves = [];
+    const LEAF_SPOTS = [[110, 130], [260, 110], [180, 220], [320, 200], [150, 90], [300, 250]];
+    function ensureLeaves() {
+      if (leaves.length) return;
+      if (quests.get("jan_leaves").state !== "active") return;
+      const need = quests.QUESTS.jan_leaves.target + 1;
+      const cols = [[210, 120, 50], [196, 90, 50], [226, 168, 60], [200, 110, 48]];
+      for (let i = 0; i < need; i++) {
+        const [x, y] = LEAF_SPOTS[i % LEAF_SPOTS.length];
+        const lf = k.add([
+          k.circle(3.4), k.color(...cols[i % cols.length]),
+          k.outline(1, k.rgb(120, 70, 30)), k.pos(x, y), k.anchor("center"), k.z(6), "leafpile",
+        ]);
+        leaves.push(lf);
+      }
+    }
+    // Tata's Herbst winter box: appears once his winter quest has started.
+    let winterbox = null;
+    function ensureWinterbox() {
+      if (winterbox) return;
+      if (quests.get("tata_winterbox").state !== "none") {
+        winterbox = k.add([
+          k.rect(34, 22, { radius: 3 }), k.color(132, 94, 54),
+          k.outline(2, k.rgb(96, 66, 36)), k.pos(300, 274), k.anchor("center"), k.z(4), "winterbox",
+        ]);
+        winterbox.add([k.rect(30, 8), k.color(206, 150, 70), k.anchor("center"), k.pos(0, 5)]); // leaf bedding
+      }
+    }
     ensurePebble();
     ensureRamp();
     ensureDandelions();
+    ensureLeaves();
+    ensureWinterbox();
 
     // ---- interaction: talk to the nearest family member with [Space] ----
-    const NPC_QUEST = {
-      magda: "magda_strawberries",
-      maria: "maria_pebble",
-      tata: "tata_ramp",
-      jan: "jan_loewenzahn",
-      constantin: "constantin_foto",
-    };
+    // Which quest a character offers depends on the current season.
+    const npcQuestId = (id) => questForGiver(id, season.key);
     const prompt = makePrompt();
 
     function nearestNpc() {
@@ -155,22 +211,26 @@ export function registerGardenScene() {
     });
 
     async function talkTo(id) {
-      const qid = NPC_QUEST[id];
+      const qid = npcQuestId(id);
       const q = qid ? quests.get(qid) : { state: "none", progress: 0 };
-      const target = qid ? quests.QUESTS[qid].target : 0;
-      await showDialogue(npcDialogue(id, q.state, q.progress, target));
+      const def = qid ? quests.QUESTS[qid] : null;
+      const dkey = def ? def.dialogue || def.giver : id;
+      await showDialogue(npcDialogue(dkey, q.state, q.progress, def?.target ?? 0));
       if (!qid) return;
       if (q.state === "none") {
         quests.start(qid);
-        if (id === "maria") ensurePebble(); // the stone is "out there" to find
-        if (id === "tata") ensureRamp(); // Tata builds the ramp as he offers it
-        if (id === "jan") ensureDandelions(); // dandelions sprout for munching
+        // spawn whatever this quest needs in the world
+        ensurePebble();
+        ensureRamp();
+        ensureDandelions();
+        ensureLeaves();
+        ensureWinterbox();
         autosave();
       } else if (q.state === "ready") {
-        const def = quests.complete(qid);
-        if (def) {
-          needs.addGluck(def.rewardGluck);
-          unlockMemory(def.rewardMemory);
+        const done = quests.complete(qid);
+        if (done) {
+          needs.addGluck(done.rewardGluck);
+          unlockMemory(done.rewardMemory);
           autosave();
         }
       }
@@ -194,7 +254,7 @@ export function registerGardenScene() {
 
     const familyQuestsAllDone = () =>
       npcs.every((n) => {
-        const qid = NPC_QUEST[n.id];
+        const qid = npcQuestId(n.id);
         return !qid || quests.get(qid).state === "done";
       });
 
@@ -231,6 +291,8 @@ export function registerGardenScene() {
       state.flags.gateGagSeen = true;
       gagPhase = "done";
       autosave();
+      // the gag ends the Sommer chapter — slide into Herbst
+      if (nextSeason(state.season)) k.wait(0.8, () => k.go("garden"));
     }
 
     // ---- main update loop ----
@@ -270,6 +332,23 @@ export function registerGardenScene() {
             autosave();
           }
         }
+      }
+
+      // Jan's Herbst leaves — gathered by waddling over them
+      if (leaves.length && quests.get("jan_leaves").state === "active") {
+        for (const lf of [...leaves]) {
+          if (gustav.pos.dist(lf.pos) < 12) {
+            k.destroy(lf);
+            leaves = leaves.filter((x) => x !== lf);
+            if (quests.progress("jan_leaves")) hud.pop(STRINGS.pops.questDone);
+            autosave();
+          }
+        }
+      }
+      // Tata's winter box — "tested" by climbing in
+      if (winterbox && quests.get("tata_winterbox").state === "active" && gustav.pos.dist(winterbox.pos) < 16) {
+        if (quests.progress("tata_winterbox")) hud.pop(STRINGS.pops.questDone);
+        autosave();
       }
 
       // Constantin's photo — hold still near him for a moment

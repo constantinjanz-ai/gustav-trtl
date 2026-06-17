@@ -3,7 +3,7 @@
 // and gentle gameplay tuning. Progression: Frühling -> Sommer (more later).
 import { PALETTE } from "./garden.spring.js";
 
-export const SEASON_ORDER = ["fruehling", "sommer"];
+export const SEASON_ORDER = ["fruehling", "sommer", "herbst"];
 
 export const SEASONS = {
   fruehling: {
@@ -42,6 +42,33 @@ export const SEASONS = {
       { kind: "cosmos", x: 452, y: 168, r: 4, color: [240, 130, 180] },
       { kind: "marigold", x: 32, y: 244, r: 4, color: [244, 168, 56] },
       { kind: "marigold", x: 446, y: 232, r: 4, color: [244, 168, 56] },
+    ],
+  },
+
+  herbst: {
+    key: "herbst",
+    label: "Herbst",
+    intro: "Herbst. Bunte Blätter und kuschelige Tage.",
+    sky: [206, 196, 176], // warm hazy autumn light
+    lawn: [126, 146, 82], // faded, golden-green
+    lawnStripe: [138, 158, 92],
+    sunFillMul: 1.0,
+    berryMax: 3, // the wild strawberries are nearly over
+    extraProps: [
+      // fallen leaves scattered across the lawn (decoration)
+      { kind: "leaf", x: 120, y: 110, r: 3, color: [210, 120, 50] },
+      { kind: "leaf", x: 180, y: 170, r: 3, color: [196, 90, 50] },
+      { kind: "leaf", x: 250, y: 130, r: 3, color: [226, 168, 60] },
+      { kind: "leaf", x: 300, y: 220, r: 3, color: [200, 110, 48] },
+      { kind: "leaf", x: 360, y: 160, r: 3, color: [222, 150, 56] },
+      { kind: "leaf", x: 150, y: 240, r: 3, color: [188, 96, 52] },
+      { kind: "leaf", x: 220, y: 90, r: 3, color: [228, 174, 64] },
+      { kind: "leaf", x: 330, y: 250, r: 3, color: [204, 116, 50] },
+      // the fig trees turning, late asters
+      { kind: "fig-autumn", x: 24, y: 64, r: 3, color: [214, 150, 60] },
+      { kind: "fig-autumn", x: 396, y: 108, r: 3, color: [214, 150, 60] },
+      { kind: "aster", x: 28, y: 200, r: 4, color: [150, 110, 190] },
+      { kind: "aster", x: 452, y: 196, r: 4, color: [150, 110, 190] },
     ],
   },
 };

@@ -82,6 +82,31 @@ const DIALOGUE = {
     }
   },
 
+  // Tata's Herbst quest: the cozy winter box.
+  tata_winter(questState) {
+    const l = lineFor("tata");
+    switch (questState) {
+      case "none":
+        return [
+          l("So, Gustav, der Herbst ist da. Zeit, an den Winter zu denken."),
+          l("Ich hab dir eine kuschelige Winterkiste gezimmert — schön mit Laub gepolstert."),
+          l("Kletter mal rein und schau, ob sie dir passt!"),
+        ];
+      case "active":
+        return [
+          l("Die Kiste steht auf der Terrasse. Probier sie ruhig aus."),
+          l("Soll ja gemütlich sein für deinen langen Schlaf."),
+        ];
+      case "ready":
+        return [
+          l("Passt wie angegossen! Da kannst du den Winter verschlafen. 😴"),
+          l("Wir wecken dich im Frühling, versprochen."),
+        ];
+      default:
+        return [l("Die Winterkiste wartet, wann immer dir danach ist, Gustav.")];
+    }
+  },
+
   jan(questState, progress = 0, target = 3) {
     const l = lineFor("jan");
     switch (questState) {
@@ -103,6 +128,31 @@ const DIALOGUE = {
         ];
       default:
         return [l("Alter, du bist echt der entspannteste Typ im Garten.")];
+    }
+  },
+
+  // Jan's Herbst quest: collect fallen leaves.
+  jan_leaves(questState, progress = 0, target = 5) {
+    const l = lineFor("jan");
+    switch (questState) {
+      case "none":
+        return [
+          l("Schau dir das an, Gustav — überall buntes Laub!"),
+          l("Hilfst du mir aufräumen? Lauf über die Blätter, dann sammeln wir sie ein."),
+          l(`Fünf schöne Blätter, dann haben wir genug fürs Winterbett.`),
+        ];
+      case "active":
+        return [
+          l(`${progress} von ${target} Blättern — die roten sind die schönsten.`),
+          l("Immer schön langsam, wir haben ja Zeit."),
+        ];
+      case "ready":
+        return [
+          l("Ein ganzer Haufen Blätter! Daraus wird das weichste Winterbett. 🍂"),
+          l("Tata polstert dir die Kiste damit aus."),
+        ];
+      default:
+        return [l("Hör mal, wie das Laub raschelt. Schönster Herbst seit langem.")];
     }
   },
 
