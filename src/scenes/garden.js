@@ -1,38 +1,134 @@
-// Frühling garden scene.
-// CHECKPOINT A: placeholder only — confirms scene routing works.
-// CHECKPOINT B will build the real one-screen garden + Gustav here.
-import k, { GAME_WIDTH, GAME_HEIGHT } from "../config/kaplay.js";
+// Frühling garden scene — the one-screen play space.
+// Builds the world from data/garden.spring.js (zones, structures, props),
+// wires collisions, and spawns Gustav. Needs/strawberries/worn-path/quest come
+// in later checkpoints; this is the world + movement foundation.
+import k from "../config/kaplay.js";
 import STRINGS from "../data/strings.de.js";
+import {
+  GARDEN_W,
+  GARDEN_H,
+  PALETTE,
+  ZONES,
+  STRUCTURES,
+  PROPS,
+  GUSTAV_START,
+} from "../data/garden.spring.js";
+import { spawnGustav } from "../entities/gustav.js";
 import { clearOverlay, uiRoot, makeButton } from "../ui/overlay.js";
+import { getState } from "../systems/save.js";
 
 export function registerGardenScene() {
   k.scene("garden", () => {
     clearOverlay();
+    buildGround();
+    buildStructures();
+    buildProps();
 
-    // simple grassy placeholder
-    k.add([k.rect(GAME_WIDTH, GAME_HEIGHT), k.pos(0, 0), k.color(123, 176, 90)]);
-    k.add([
-      k.text(STRINGS.seasons.fruehling, { font: "monospace", size: 24 }),
-      k.pos(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20),
-      k.anchor("center"),
-      k.color(40, 60, 30),
-    ]);
-    k.add([
-      k.text("(Garten kommt in Checkpoint B)", { font: "monospace", size: 12 }),
-      k.pos(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 14),
-      k.anchor("center"),
-      k.color(40, 60, 30),
-    ]);
+    const state = getState();
+    const start = state.gustav?.x != null ? state.gustav : GUSTAV_START;
+    const gustav = spawnGustav(k, start);
 
-    // a quick way back to the title while scaffolding
-    const back = makeButton(STRINGS.menu.back, {
-      wood: true,
-      onClick: () => k.go("title"),
+    // persist Gustav's position back into the live save state as he moves
+    gustav.onUpdate(() => {
+      state.gustav = { x: Math.round(gustav.pos.x), y: Math.round(gustav.pos.y) };
     });
-    back.style.position = "absolute";
-    back.style.left = "16px";
-    back.style.top = "16px";
-    back.style.minWidth = "120px";
-    uiRoot.appendChild(back);
+
+    buildHud();
   });
+}
+
+function buildGround() {
+  // lawn covers the whole ground
+  k.add([k.rect(GARDEN_W, GARDEN_H), k.pos(0, 0), k.color(...PALETTE.lawn), k.z(0)]);
+
+  // faint mowing stripes
+  for (let i = 0; i < 6; i++) {
+    k.add([
+      k.rect(GARDEN_W, 18),
+      k.pos(0, 30 + i * 38),
+      k.color(...PALETTE.lawnStripe),
+      k.opacity(0.5),
+      k.z(1),
+    ]);
+  }
+
+  // planted beds (bark mulch) down the long borders
+  for (const b of [ZONES.leftBed, ZONES.rightBed]) {
+    k.add([k.rect(b.w, b.h), k.pos(b.x, b.y), k.color(...PALETTE.bed), k.opacity(0.85), k.z(2)]);
+  }
+
+  // wood terrace deck along the house
+  const t = ZONES.terrace;
+  k.add([k.rect(t.w, t.h), k.pos(t.x, t.y), k.color(...PALETTE.deck), k.z(3)]);
+  for (let i = 0; i < 8; i++) {
+    k.add([
+      k.rect(t.w, 1.5),
+      k.pos(t.x, t.y + 3 + i * 3.6),
+      k.color(...PALETTE.deckPlank),
+      k.opacity(0.5),
+      k.z(4),
+    ]);
+  }
+}
+
+function buildStructures() {
+  for (const s of STRUCTURES) {
+    const obj = k.add([
+      k.rect(s.w, s.h),
+      k.pos(s.x, s.y),
+      k.color(...s.color),
+      k.z(s.kind === "house" ? 5 : 6),
+      s.kind,
+    ]);
+    if (s.solid) obj.use(k.area()), obj.use(k.body({ isStatic: true }));
+  }
+
+  // a hint of patio doors on the house wall
+  for (let i = 0; i < 3; i++) {
+    k.add([
+      k.rect(70, 14),
+      k.pos(70 + i * 130, 302),
+      k.color(...PALETTE.houseDoor),
+      k.opacity(0.9),
+      k.z(6),
+    ]);
+  }
+}
+
+function buildProps() {
+  for (const p of PROPS) {
+    const comps = [k.pos(p.x, p.y), k.anchor("center"), k.color(...p.color), k.z(5), p.kind];
+    if (p.r != null) {
+      comps.unshift(k.circle(p.r));
+    } else {
+      comps.unshift(k.rect(p.w, p.h, { radius: 3 }));
+    }
+    if (p.tag) comps.push(p.tag);
+    const obj = k.add(comps);
+    if (p.solid) {
+      obj.use(k.area({ scale: 0.8 })); // slightly forgiving collision
+      obj.use(k.body({ isStatic: true }));
+    }
+  }
+}
+
+function buildHud() {
+  // dev nav + a gentle control hint (the real beveled HUD lands in Checkpoint C)
+  const back = makeButton(STRINGS.menu.back, {
+    wood: true,
+    onClick: () => k.go("title"),
+  });
+  back.style.position = "absolute";
+  back.style.left = "12px";
+  back.style.top = "12px";
+  back.style.minWidth = "110px";
+  uiRoot.appendChild(back);
+
+  const hint = document.createElement("div");
+  hint.textContent = "WASD / Pfeiltasten: Gustav läuft";
+  hint.style.cssText =
+    "position:absolute;left:50%;bottom:14px;transform:translateX(-50%);" +
+    "font-family:var(--font-read);font-size:22px;color:#fff;" +
+    "text-shadow:0 2px 4px rgba(0,0,0,.6);pointer-events:none;";
+  uiRoot.appendChild(hint);
 }
