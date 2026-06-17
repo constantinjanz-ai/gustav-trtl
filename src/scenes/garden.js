@@ -109,11 +109,33 @@ export function registerGardenScene() {
         ramp.add([k.rect(36, 3), k.color(176, 130, 76), k.anchor("top"), k.pos(0, -6.5)]);
       }
     }
+    // Jan's Löwenzahn: dandelions on the lawn while his quest is active.
+    let dandelions = [];
+    const DANDE_SPOTS = [[120, 120], [300, 92], [200, 204], [332, 210], [156, 160]];
+    function ensureDandelions() {
+      if (dandelions.length) return;
+      if (quests.get("jan_loewenzahn").state !== "active") return;
+      const need = quests.QUESTS.jan_loewenzahn.target + 1;
+      for (let i = 0; i < need; i++) {
+        const [x, y] = DANDE_SPOTS[i % DANDE_SPOTS.length];
+        const d = k.add([k.pos(x, y), k.anchor("center"), k.z(6), "loewenzahn"]);
+        d.add([k.rect(1.5, 5), k.color(80, 140, 70), k.anchor("top"), k.pos(0, 1)]);
+        d.add([k.circle(3), k.color(245, 205, 55), k.anchor("center"), k.pos(0, 0)]);
+        dandelions.push(d);
+      }
+    }
     ensurePebble();
     ensureRamp();
+    ensureDandelions();
 
     // ---- interaction: talk to the nearest family member with [Space] ----
-    const NPC_QUEST = { magda: "magda_strawberries", maria: "maria_pebble", tata: "tata_ramp" };
+    const NPC_QUEST = {
+      magda: "magda_strawberries",
+      maria: "maria_pebble",
+      tata: "tata_ramp",
+      jan: "jan_loewenzahn",
+      constantin: "constantin_foto",
+    };
     const prompt = makePrompt();
 
     function nearestNpc() {
@@ -142,6 +164,7 @@ export function registerGardenScene() {
         quests.start(qid);
         if (id === "maria") ensurePebble(); // the stone is "out there" to find
         if (id === "tata") ensureRamp(); // Tata builds the ramp as he offers it
+        if (id === "jan") ensureDandelions(); // dandelions sprout for munching
         autosave();
       } else if (q.state === "ready") {
         const def = quests.complete(qid);
@@ -163,6 +186,51 @@ export function registerGardenScene() {
 
     function autosave() {
       saveGame();
+    }
+
+    // ---- Sommer gate-escape gag ----
+    let gagPhase = state.flags?.gateGagSeen ? "done" : "idle"; // idle->open->scoop->done
+    let stillTimer = 0; // for Constantin's photo
+
+    const familyQuestsAllDone = () =>
+      npcs.every((n) => {
+        const qid = NPC_QUEST[n.id];
+        return !qid || quests.get(qid).state === "done";
+      });
+
+    function openGate() {
+      k.get("gate").forEach((g) => k.destroy(g));
+      gustav.minY = -26; // let him slip out the top gap
+      hud.pop(STRINGS.pops.gateOpen);
+    }
+
+    function closeGate() {
+      gustav.minY = 16;
+      k.add([
+        k.rect(80, 12), k.pos(200, 6), k.color(...PALETTE.gate), k.z(6),
+        k.area(), k.body({ isStatic: true }), "gate",
+      ]);
+    }
+
+    async function playScoop() {
+      gagPhase = "scoop";
+      const rescuer = npcs.find((n) => n.id === "maria") || npcs[0];
+      const rc = CHARACTERS[rescuer.id];
+      const L = (text) => ({ name: rc.name, portrait: rc.portrait, text });
+      await showDialogue([
+        L("Gustaaav! Wo willst du denn hin, du kleiner Ausreißer? 🐢💨"),
+        L("Komm her, du. Der Garten ist doch viel schöner als die Straße."),
+      ]);
+      // a little "scooped up" hop, then set safely back on the lawn
+      gustav.pos.y = 34;
+      await new Promise((res) => k.wait(0.25, res));
+      gustav.pos.x = 240;
+      gustav.pos.y = 244;
+      closeGate();
+      unlockMemory("ausreisser");
+      state.flags.gateGagSeen = true;
+      gagPhase = "done";
+      autosave();
     }
 
     // ---- main update loop ----
@@ -190,6 +258,42 @@ export function registerGardenScene() {
       if (ramp && quests.get("tata_ramp").state === "active" && gustav.pos.dist(ramp.pos) < 16) {
         if (quests.progress("tata_ramp")) hud.pop(STRINGS.pops.questDone);
         autosave();
+      }
+
+      // Jan's Löwenzahn — munched by waddling onto them
+      if (dandelions.length && quests.get("jan_loewenzahn").state === "active") {
+        for (const d of [...dandelions]) {
+          if (gustav.pos.dist(d.pos) < 12) {
+            k.destroy(d);
+            dandelions = dandelions.filter((x) => x !== d);
+            if (quests.progress("jan_loewenzahn")) hud.pop(STRINGS.pops.questDone);
+            autosave();
+          }
+        }
+      }
+
+      // Constantin's photo — hold still near him for a moment
+      const cNpc = npcs.find((n) => n.id === "constantin");
+      if (cNpc && quests.get("constantin_foto").state === "active") {
+        if (!isUiBusy() && !gustav.moving && gustav.pos.dist(cNpc.obj.pos) < 38) {
+          stillTimer += k.dt();
+          if (stillTimer >= 1.4) {
+            if (quests.progress("constantin_foto")) hud.pop(STRINGS.pops.photo);
+            autosave();
+          }
+        } else {
+          stillTimer = 0;
+        }
+      }
+
+      // Gate-escape gag: once the whole Sommer family is happy, the gate is left
+      // open. Guide Gustav out the top and the family scoops him back up.
+      if (gagPhase === "idle" && state.season === "sommer" && familyQuestsAllDone()) {
+        gagPhase = "open";
+        openGate();
+      }
+      if (gagPhase === "open" && gustav.pos.y < 12) {
+        playScoop();
       }
 
       // Teezeit when Glück first crosses the threshold; ends the Frühling

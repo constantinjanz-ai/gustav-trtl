@@ -57,6 +57,8 @@ export const STRINGS = {
     newMemory: "Neue Erinnerung! ✨",
     questDone: "Aufgabe geschafft! 🍓",
     found: "Gefunden! 🪨",
+    photo: "Klick! 📸",
+    gateOpen: "Das Gartentor steht offen! 👀",
   },
 };
 

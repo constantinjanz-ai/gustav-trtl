@@ -81,6 +81,55 @@ const DIALOGUE = {
         return [l("Genieß die Sonne, Gustav. Gut gebaut, wenn ich das so sage.")];
     }
   },
+
+  jan(questState, progress = 0, target = 3) {
+    const l = lineFor("jan");
+    switch (questState) {
+      case "none":
+        return [
+          l("Servus Gustav! Na, schon was Leckeres gefunden?"),
+          l("Im Rasen sprießt überall Löwenzahn — dein Lieblingssalat."),
+          l(`Mampf doch ein paar für mich, sagen wir drei Stück?`),
+        ];
+      case "active":
+        return [
+          l(`${progress} von ${target} Löwenzahn — schmatz weiter, Kumpel.`),
+          l("Die gelben Blüten sind die besten, glaub mir."),
+        ];
+      case "ready":
+        return [
+          l("Drei Löwenzahn weg! Du frisst wie ein Weltmeister. 😄"),
+          l("Setz dich zu uns, gleich ist Teezeit."),
+        ];
+      default:
+        return [l("Alter, du bist echt der entspannteste Typ im Garten.")];
+    }
+  },
+
+  constantin(questState) {
+    const l = lineFor("constantin");
+    // TODO(in-jokes): the user will add personal in-jokes for Constantin here.
+    switch (questState) {
+      case "none":
+        return [
+          l("Also… ich bin der Neue. Maria hat gesagt, ich soll viel von dir lernen."),
+          l("Du machst ja eigentlich nur Sonne, Snacks, Nickerchen. Genie. 😎"),
+          l("Halt mal kurz still, ich will ein Foto für das Album machen!"),
+        ];
+      case "active":
+        return [
+          l("Ganz ruhig bleiben… genau so… nicht weglaufen!"),
+          l("Bleib einfach kurz neben mir stehen, dann hab ich's."),
+        ];
+      case "ready":
+        return [
+          l("Perfekt! Das schönste Schildkröten-Porträt aller Zeiten. 📸"),
+          l("Maria hatte recht: von dir kann man echt was lernen, Gustav."),
+        ];
+      default:
+        return [l("Sonne, Snack, Nickerchen. Ich arbeite dran, Meister. 🐢")];
+    }
+  },
 };
 
 export function npcDialogue(id, questState, progress, target) {

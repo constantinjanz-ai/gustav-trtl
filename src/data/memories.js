@@ -29,6 +29,27 @@ export const MEMORIES = [
     icon: "☀️",
     photo: null, // TODO(M5)
   },
+  {
+    id: "loewenzahn",
+    title: "Löwenzahn-Festmahl",
+    caption: "Jan zeigt Gustav die besten Löwenzahn-Blüten im Rasen. Schmatz!",
+    icon: "🌼",
+    photo: null, // TODO(M5)
+  },
+  {
+    id: "constantin_foto",
+    title: "Das erste Foto",
+    caption: "Constantin lernt von Gustav — und knipst das schönste Schildkröten-Porträt.",
+    icon: "📸",
+    photo: null, // TODO(M5): a real photo of Gustav fits perfectly here
+  },
+  {
+    id: "ausreisser",
+    title: "Der kleine Ausreißer",
+    caption: "Das Tor stand offen! Gustav machte sich davon — die Familie fing ihn lachend wieder ein.",
+    icon: "🚪",
+    photo: null, // TODO(M5)
+  },
 ];
 
 export function getMemory(id) {

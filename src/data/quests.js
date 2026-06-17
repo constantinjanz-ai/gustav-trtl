@@ -31,4 +31,26 @@ export const QUESTS = {
     rewardGluck: 16,
     rewardMemory: "sonnenrampe",
   },
+
+  // Jan: munch some dandelions for him.
+  jan_loewenzahn: {
+    id: "jan_loewenzahn",
+    giver: "jan",
+    type: "collect_loewenzahn",
+    target: 3,
+    label: "Friss Löwenzahn für Jan",
+    rewardGluck: 16,
+    rewardMemory: "loewenzahn",
+  },
+
+  // Constantin: hold still for a scrapbook photo.
+  constantin_foto: {
+    id: "constantin_foto",
+    giver: "constantin",
+    type: "hold_still",
+    target: 1,
+    label: "Halt still für Constantins Foto",
+    rewardGluck: 14,
+    rewardMemory: "constantin_foto",
+  },
 };

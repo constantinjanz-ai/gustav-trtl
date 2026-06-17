@@ -113,9 +113,10 @@ export function spawnGustav(k, start) {
       gustav.t += k.dt();
     }
 
-    // keep Gustav inside the garden bounds (belt-and-braces vs the fence body)
+    // keep Gustav inside the garden bounds (belt-and-braces vs the fence body).
+    // minY can be lowered during the gate-escape gag so he can slip out the top.
     gustav.pos.x = k.clamp(gustav.pos.x, 16, GARDEN_W - 16);
-    gustav.pos.y = k.clamp(gustav.pos.y, 16, GARDEN_H - 16);
+    gustav.pos.y = k.clamp(gustav.pos.y, gustav.minY ?? 16, GARDEN_H - 16);
 
     // waddle: gentle body tilt + head-bob while walking
     const wobble = gustav.moving ? Math.sin(gustav.t * 9) : 0;
