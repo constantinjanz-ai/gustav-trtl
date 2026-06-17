@@ -4,12 +4,12 @@
 import { BORDER_LANES } from "../data/garden.spring.js";
 import { sfx } from "./audio.js";
 
-const MAX_BERRIES = 6;
 const RESPAWN_MIN = 2.5; // seconds
 const RESPAWN_MAX = 6;
 const EAT_DIST = 12;
 
-export function createStrawberries(k, state, { onEat } = {}) {
+export function createStrawberries(k, state, { onEat, max = 6 } = {}) {
+  const MAX_BERRIES = max;
   const berries = [];
   let respawnTimer = 0;
 

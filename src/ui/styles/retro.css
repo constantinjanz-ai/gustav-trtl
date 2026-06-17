@@ -536,6 +536,44 @@ body {
   opacity: 0.8;
 }
 
+/* ---------- season chapter card ---------- */
+.gg-chapter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(20, 30, 15, 0.35),
+    rgba(20, 30, 15, 0.72)
+  );
+  pointer-events: auto;
+  z-index: 60;
+  opacity: 1; /* base visible — robust even where CSS animations are paused */
+  transition: opacity 0.4s ease;
+}
+.gg-chapter.is-out {
+  opacity: 0;
+}
+.gg-chapter-inner {
+  text-align: center;
+  transform: translateY(0);
+}
+.gg-chapter-label {
+  font-family: var(--font-pixel);
+  font-size: clamp(40px, 7vw, 76px);
+  color: var(--gg-sun);
+  -webkit-text-stroke: 3px var(--gg-wood);
+  text-shadow: 0 4px 0 var(--gg-wood), 0 8px 16px rgba(0, 0, 0, 0.55);
+}
+.gg-chapter-sub {
+  font-family: var(--font-read);
+  font-size: clamp(20px, 3vw, 30px);
+  color: var(--gg-cream);
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+  margin-top: 12px;
+}
 /* toast (e.g. "Gespeichert!") */
 .gg-toast {
   position: absolute;

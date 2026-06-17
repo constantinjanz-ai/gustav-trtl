@@ -18,6 +18,9 @@ function buildBackdrop() {
   const W = GAME_WIDTH;
   const H = GAME_HEIGHT;
 
+  // reset the sky (the garden may have tinted it for a season)
+  k.setBackground(k.rgb(173, 216, 222));
+
   // soft sun
   k.add([
     k.circle(34),

@@ -7,7 +7,9 @@ function inRect(p, r) {
   return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 }
 
-export function createNeeds(k, state) {
+export function createNeeds(k, state, opts = {}) {
+  const sunFillMul = opts.sunFillMul ?? 1;
+
   // make sure the shape is present (old saves / fresh state)
   state.needs = state.needs || { sonne: 70, snack: 70, nickerchen: 70 };
   if (typeof state.gluck !== "number") state.gluck = 0;
@@ -25,7 +27,7 @@ export function createNeeds(k, state) {
     // Sonne: basking in the sunny terrace spot
     if (inRect(gustav.pos, SUN_ZONE)) {
       const sun = NEEDS.find((n) => n.key === "sonne");
-      state.needs.sonne = clamp(state.needs.sonne + sun.fillRate * dt);
+      state.needs.sonne = clamp(state.needs.sonne + sun.fillRate * sunFillMul * dt);
     }
 
     // Nickerchen: resting (standing still); cozier on the terrace deck

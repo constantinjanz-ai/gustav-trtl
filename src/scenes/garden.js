@@ -27,6 +27,8 @@ import { openScrapbook } from "../ui/scrapbook.js";
 import { playTeezeit } from "../ui/teezeit.js";
 import { CHARACTERS } from "../data/characters.js";
 import { magdaDialogue } from "../data/dialogue.js";
+import { getSeason, nextSeason } from "../data/seasons.js";
+import { showChapterCard } from "../ui/chapterCard.js";
 
 const TALK_DIST = 30;
 const TEEZEIT_GLUCK = 40;
@@ -34,11 +36,30 @@ const TEEZEIT_GLUCK = 40;
 export function registerGardenScene() {
   k.scene("garden", () => {
     clearOverlay();
-    buildGround();
-    buildStructures();
-    buildProps();
 
     const state = getState();
+
+    // Chapter progression: once the Frühling Teezeit is done, the garden moves
+    // into Sommer (also lifts older saves into the new content on entry).
+    if (state.flags?.teezeitSeen && state.season === "fruehling") {
+      state.flags.fruehling_seen = true; // don't replay the Frühling card
+      state.season = "sommer";
+    }
+    const season = getSeason(state.season);
+
+    // apply the season skin
+    k.setBackground(k.rgb(...season.sky));
+    buildGround(season);
+    buildStructures();
+    buildProps(season);
+
+    // chapter card the first time a season is entered
+    state.flags = state.flags || {};
+    const seenKey = "season_" + season.key + "_seen";
+    if (!state.flags[seenKey]) {
+      state.flags[seenKey] = true;
+      showChapterCard(season);
+    }
 
     // worn path renders under Gustav, so build it before he spawns
     const worn = createWornPath(k, state);
@@ -50,10 +71,11 @@ export function registerGardenScene() {
     const magda = spawnMagda(k, CHARACTERS.magda.spawn);
 
     // systems
-    const needs = createNeeds(k, state);
+    const needs = createNeeds(k, state, { sunFillMul: season.sunFillMul });
     const quests = createQuests(state);
     const hud = createHud(state);
     const straw = createStrawberries(k, state, {
+      max: season.berryMax,
       onEat: () => {
         needs.eatSnack();
         const readyId = quests.onBerryEaten();
@@ -112,12 +134,18 @@ export function registerGardenScene() {
       const near = !isUiBusy() && gustav.pos.dist(magda.pos) <= TALK_DIST;
       prompt.style.opacity = near ? "1" : "0";
 
-      // Teezeit when Glück first crosses the threshold
+      // Teezeit when Glück first crosses the threshold; ends the Frühling
+      // chapter and slides into Sommer.
       if (!teezeitPlaying && !state.flags?.teezeitSeen && state.gluck >= TEEZEIT_GLUCK) {
         teezeitPlaying = true;
         playTeezeit(k, state).then(() => {
           hud.pop(STRINGS.pops.newMemory);
+          const upcoming = nextSeason(state.season);
           autosave();
+          if (upcoming) {
+            // rebuild the scene in the next season (shows its chapter card)
+            k.wait(0.6, () => k.go("garden"));
+          }
         });
       }
     });
@@ -135,16 +163,16 @@ function makePrompt() {
   return el;
 }
 
-function buildGround() {
+function buildGround(season) {
   // lawn covers the whole ground
-  k.add([k.rect(GARDEN_W, GARDEN_H), k.pos(0, 0), k.color(...PALETTE.lawn), k.z(0)]);
+  k.add([k.rect(GARDEN_W, GARDEN_H), k.pos(0, 0), k.color(...season.lawn), k.z(0)]);
 
   // faint mowing stripes
   for (let i = 0; i < 6; i++) {
     k.add([
       k.rect(GARDEN_W, 18),
       k.pos(0, 30 + i * 38),
-      k.color(...PALETTE.lawnStripe),
+      k.color(...season.lawnStripe),
       k.opacity(0.5),
       k.z(1),
     ]);
@@ -193,8 +221,9 @@ function buildStructures() {
   }
 }
 
-function buildProps() {
-  for (const p of PROPS) {
+function buildProps(season) {
+  const props = [...PROPS, ...(season.extraProps || [])];
+  for (const p of props) {
     const comps = [k.pos(p.x, p.y), k.anchor("center"), k.color(...p.color), k.z(5), p.kind];
     if (p.r != null) {
       comps.unshift(k.circle(p.r));
