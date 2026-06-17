@@ -1,6 +1,7 @@
 // Retro beveled HUD: three need meters (Sonne / Snack / Nickerchen) + a Glück
 // meter. Plain DOM overlay; the scene calls update(state) each frame.
 import { NEEDS, GLUCK } from "../data/needs.js";
+import STRINGS from "../data/strings.de.js";
 import { uiRoot } from "./overlay.js";
 
 const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -38,6 +39,23 @@ export function createHud(state) {
 
   uiRoot.appendChild(hud);
 
+  // Aufgabe (current quest) chip, below the meters
+  const task = document.createElement("div");
+  task.className = "gg-task";
+  task.style.display = "none";
+  uiRoot.appendChild(task);
+
+  function setTask(info) {
+    if (!info) {
+      task.style.display = "none";
+      return;
+    }
+    task.style.display = "block";
+    task.innerHTML =
+      `<span class="gg-task-label">${STRINGS.task}</span> ` +
+      `${info.text} <b>${info.progress}/${info.target}</b>`;
+  }
+
   function update(s) {
     for (const n of NEEDS) {
       fills[n.key].style.width = clampPct(s.needs[n.key]) + "%";
@@ -57,9 +75,10 @@ export function createHud(state) {
 
   function destroy() {
     hud.remove();
+    task.remove();
   }
 
-  return { update, pop, destroy };
+  return { update, pop, destroy, setTask };
 }
 
 function clampPct(v) {

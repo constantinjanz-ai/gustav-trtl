@@ -1,34 +1,24 @@
-// Offscreen/preview keep-alive shim.
+// Dev-only offscreen/preview keep-alive shim.
 //
 // Two browser behaviours stop a Kaplay game from running in a hidden/offscreen
 // context (e.g. an automated preview pane that never becomes the foreground tab):
 //   1. requestAnimationFrame is paused while the page is hidden.
-//   2. Kaplay's own loop early-returns every frame when
+//   2. Kaplay's own loop early-returns each frame when
 //      `document.visibilityState !== "visible"`.
 //
-// This shim ONLY activates in dev AND only when the page is actually hidden at
-// boot (i.e. an offscreen preview). A real player's tab is visible at boot, so
-// none of this runs for them, and a production build strips it entirely.
+// This installs in DEV only (a production build strips it entirely) and is
+// robust to visibility *transitions* — it doesn't depend on whether the page
+// happens to be hidden at boot:
+//   - It reports the document as visible so Kaplay's loop always proceeds.
+//   - Every requestAnimationFrame races native rAF against a setTimeout. When
+//     the page is truly visible, native fires first (~16ms) and the timeout is a
+//     harmless no-op → full 60fps. When hidden, native is paused, so the timeout
+//     drives the frame (low fps under background throttling, but it keeps going).
 //
-// When active it (a) reports the document as visible so Kaplay's loop proceeds,
-// and (b) pumps requestAnimationFrame via setTimeout since the native one is
-// throttled while hidden. Frame rate is low (~1fps under background throttling)
-// but enough to render and inspect.
+// For a real player in production none of this runs: native rAF + native
+// visibility, and the game pauses politely when the tab is backgrounded.
 
-const isDev = import.meta.env?.DEV;
-const visDesc = Object.getOwnPropertyDescriptor(
-  Document.prototype,
-  "visibilityState",
-);
-const reallyVisible = () =>
-  visDesc ? visDesc.get.call(document) === "visible" : !document.hidden;
-
-if (isDev && !reallyVisible()) {
-  console.warn(
-    "[gg] offscreen preview detected — enabling keep-alive shim (dev only).",
-  );
-
-  // (1) Make Kaplay believe the page is visible.
+if (import.meta.env?.DEV) {
   Object.defineProperty(document, "visibilityState", {
     configurable: true,
     get: () => "visible",
@@ -38,19 +28,18 @@ if (isDev && !reallyVisible()) {
     get: () => false,
   });
 
-  // (2) Drive the frame loop via timeout, since native rAF is paused while
-  //     genuinely hidden. Decision uses the REAL visibility, not the faked one.
   const nativeRAF = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = function (cb) {
-    if (reallyVisible()) return nativeRAF(cb);
     let called = false;
     const run = (t) => {
       if (called) return;
       called = true;
       cb(typeof t === "number" ? t : performance.now());
     };
-    nativeRAF(run); // fires if the page becomes visible
-    setTimeout(() => run(performance.now()), 16); // background-clamped, but ticks
+    nativeRAF(run); // wins when the page is visible
+    setTimeout(() => run(performance.now()), 24); // drives it when hidden
     return 0;
   };
+
+  console.warn("[gg] dev keep-alive shim active (no-op in production builds).");
 }

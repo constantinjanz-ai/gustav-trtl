@@ -4,6 +4,7 @@
 // Built behind a thin layer so M5 can swap the shapes for a real sprite.
 
 import { GARDEN_W, GARDEN_H } from "../data/garden.spring.js";
+import { isUiBusy } from "../ui/overlay.js";
 
 const SPEED = 46; // slow and endearing (logical px/s)
 
@@ -97,10 +98,12 @@ export function spawnGustav(k, start) {
 
   gustav.onUpdate(() => {
     const dir = k.vec2(0, 0);
-    if (k.isKeyDown("left") || k.isKeyDown("a")) dir.x -= 1;
-    if (k.isKeyDown("right") || k.isKeyDown("d")) dir.x += 1;
-    if (k.isKeyDown("up") || k.isKeyDown("w")) dir.y -= 1;
-    if (k.isKeyDown("down") || k.isKeyDown("s")) dir.y += 1;
+    if (!isUiBusy()) {
+      if (k.isKeyDown("left") || k.isKeyDown("a")) dir.x -= 1;
+      if (k.isKeyDown("right") || k.isKeyDown("d")) dir.x += 1;
+      if (k.isKeyDown("up") || k.isKeyDown("w")) dir.y -= 1;
+      if (k.isKeyDown("down") || k.isKeyDown("s")) dir.y += 1;
+    }
 
     gustav.moving = dir.x !== 0 || dir.y !== 0;
     if (gustav.moving) {

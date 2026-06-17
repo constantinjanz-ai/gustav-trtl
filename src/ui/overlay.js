@@ -3,9 +3,18 @@ import { sfx } from "../systems/audio.js";
 
 export const uiRoot = document.querySelector("#ui-root");
 
+// When true, a modal overlay (dialogue, scrapbook, cutscene) owns input —
+// the world pauses Gustav's movement. See entities/gustav.js.
+let _busy = false;
+export const setUiBusy = (v) => {
+  _busy = v;
+};
+export const isUiBusy = () => _busy;
+
 // Remove every overlay element (called on scene changes).
 export function clearOverlay() {
   uiRoot.innerHTML = "";
+  _busy = false;
 }
 
 // Glossy Web 2.0 button. opts: { wood, disabled, onClick }.

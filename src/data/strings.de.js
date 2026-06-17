@@ -50,6 +50,12 @@ export const STRINGS = {
 
   prompts: {
     interact: "Drücke [Leertaste]",
+    talk: "Drücke [Leertaste] zum Reden",
+  },
+
+  pops: {
+    newMemory: "Neue Erinnerung! ✨",
+    questDone: "Aufgabe geschafft! 🍓",
   },
 };
 
