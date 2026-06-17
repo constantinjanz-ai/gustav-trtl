@@ -2,6 +2,7 @@
 // still-locked ones as mystery slots. Photo slots are placeholders for M5.
 import STRINGS from "../data/strings.de.js";
 import { MEMORIES } from "../data/memories.js";
+import { resolvePhoto } from "../data/photos.js";
 import { uiRoot, makeModal, makeButton } from "./overlay.js";
 import { setUiBusy } from "./overlay.js";
 import { sfx } from "../systems/audio.js";
@@ -17,9 +18,13 @@ export function openScrapbook(state) {
   for (const m of MEMORIES) {
     const card = document.createElement("div");
     if (unlocked.has(m.id)) {
+      const url = resolvePhoto(m.photo);
+      const inner = url
+        ? `<img class="gg-mem-img" src="${url}" alt="${m.title}" />`
+        : m.icon;
       card.className = "gg-mem";
       card.innerHTML = `
-        <div class="gg-mem-photo">${m.icon}</div>
+        <div class="gg-mem-photo">${inner}</div>
         <div class="gg-mem-title">${m.title}</div>
         <div class="gg-mem-cap">${m.caption}</div>`;
     } else {
