@@ -53,6 +53,11 @@ export const STRINGS = {
     talk: "Drücke [Leertaste] zum Reden",
   },
 
+  winter: {
+    sleeping: "Gustav schläft … 💤",
+    wake: "Im Frühling aufwecken 🌷",
+  },
+
   pops: {
     newMemory: "Neue Erinnerung! ✨",
     questDone: "Aufgabe geschafft! 🍓",

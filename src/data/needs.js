@@ -36,7 +36,7 @@ export const GLUCK = {
   label: "Glück",
   icon: "🌸",
   color: [255, 143, 191],
-  contentTrickle: 0.7, // points/sec when the average need is high
+  contentTrickle: 0.35, // points/sec when the average need is high (gentle pacing)
   contentThreshold: 60, // average need above this counts as "content"
   berryBump: 0.8, // per strawberry
 };

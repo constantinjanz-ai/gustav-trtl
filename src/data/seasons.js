@@ -3,7 +3,7 @@
 // and gentle gameplay tuning. Progression: Frühling -> Sommer (more later).
 import { PALETTE } from "./garden.spring.js";
 
-export const SEASON_ORDER = ["fruehling", "sommer", "herbst"];
+export const SEASON_ORDER = ["fruehling", "sommer", "herbst", "winter"];
 
 export const SEASONS = {
   fruehling: {
@@ -69,6 +69,27 @@ export const SEASONS = {
       { kind: "fig-autumn", x: 396, y: 108, r: 3, color: [214, 150, 60] },
       { kind: "aster", x: 28, y: 200, r: 4, color: [150, 110, 190] },
       { kind: "aster", x: 452, y: 196, r: 4, color: [150, 110, 190] },
+    ],
+  },
+
+  winter: {
+    key: "winter",
+    label: "Winter",
+    intro: "Winter. Zeit für einen langen, kuscheligen Schlaf.",
+    sky: [214, 226, 238], // pale, cold light
+    lawn: [221, 228, 228], // snow-covered
+    lawnStripe: [231, 236, 236],
+    sunFillMul: 0.6,
+    berryMax: 0, // nothing grows now — Gustav sleeps
+    extraProps: [
+      // snow caps / dollops tucked along the beds
+      { kind: "snow", x: 24, y: 70, r: 9, color: [240, 244, 248] },
+      { kind: "snow", x: 456, y: 150, r: 10, color: [240, 244, 248] },
+      { kind: "snow", x: 26, y: 178, r: 8, color: [240, 244, 248] },
+      { kind: "snow", x: 396, y: 112, r: 8, color: [240, 244, 248] },
+      { kind: "snow", x: 120, y: 30, r: 7, color: [240, 244, 248] },
+      // a frosting of snow on the terrace edge
+      { kind: "snow", x: 240, y: 268, w: 380, h: 6, color: [238, 243, 248] },
     ],
   },
 };

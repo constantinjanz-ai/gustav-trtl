@@ -98,7 +98,7 @@ export function spawnGustav(k, start) {
 
   gustav.onUpdate(() => {
     const dir = k.vec2(0, 0);
-    if (!isUiBusy()) {
+    if (!isUiBusy() && !gustav.asleep) {
       if (k.isKeyDown("left") || k.isKeyDown("a")) dir.x -= 1;
       if (k.isKeyDown("right") || k.isKeyDown("d")) dir.x += 1;
       if (k.isKeyDown("up") || k.isKeyDown("w")) dir.y -= 1;

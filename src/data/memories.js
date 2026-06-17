@@ -64,6 +64,13 @@ export const MEMORIES = [
     icon: "📦",
     photo: null, // TODO(M5)
   },
+  {
+    id: "winterschlaf",
+    title: "Gute Nacht, Gustav",
+    caption: "Die Familie deckt Gustav warm zu, Schnee fällt leise — und im Frühling ist er wieder da.",
+    icon: "❄️",
+    photo: null, // TODO(M5)
+  },
 ];
 
 export function getMemory(id) {

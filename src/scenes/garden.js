@@ -17,6 +17,7 @@ import { spawnGustav } from "../entities/gustav.js";
 import { spawnCharacter } from "../entities/npc.js";
 import { clearOverlay, uiRoot, makeButton, toast, isUiBusy } from "../ui/overlay.js";
 import { getState, saveGame } from "../systems/save.js";
+import { sfx } from "../systems/audio.js";
 import { createNeeds } from "../systems/needs.js";
 import { createStrawberries } from "../systems/strawberries.js";
 import { createWornPath } from "../systems/wornPath.js";
@@ -32,7 +33,7 @@ import { getSeason, nextSeason, SEASON_ORDER } from "../data/seasons.js";
 import { showChapterCard } from "../ui/chapterCard.js";
 
 const TALK_DIST = 30;
-const TEEZEIT_GLUCK = 40;
+const TEEZEIT_GLUCK = 55;
 
 export function registerGardenScene() {
   k.scene("garden", () => {
@@ -50,6 +51,13 @@ export function registerGardenScene() {
     if (state.flags?.gateGagSeen && state.season === "sommer") {
       state.season = "herbst";
     }
+    if (
+      state.season === "herbst" &&
+      state.quests?.jan_leaves?.state === "done" &&
+      state.quests?.tata_winterbox?.state === "done"
+    ) {
+      state.season = "winter";
+    }
     const season = getSeason(state.season);
 
     // apply the season skin
@@ -66,26 +74,30 @@ export function registerGardenScene() {
       showChapterCard(season);
     }
 
-    // ambient drifting leaves in Herbst (purely decorative)
-    if (season.key === "herbst") {
-      const cols = [[214, 130, 56], [196, 90, 50], [226, 168, 60], [180, 110, 70]];
-      for (let i = 0; i < 10; i++) {
-        const leaf = k.add([
-          k.circle(2.6),
+    // ambient drifting particles: autumn leaves / winter snow (decorative)
+    if (season.key === "herbst" || season.key === "winter") {
+      const isSnow = season.key === "winter";
+      const cols = isSnow
+        ? [[244, 248, 252], [236, 242, 248]]
+        : [[214, 130, 56], [196, 90, 50], [226, 168, 60], [180, 110, 70]];
+      const count = isSnow ? 16 : 10;
+      for (let i = 0; i < count; i++) {
+        const p = k.add([
+          k.circle(isSnow ? 1.8 : 2.6),
           k.color(...cols[i % cols.length]),
-          k.opacity(0.85),
+          k.opacity(isSnow ? 0.95 : 0.85),
           k.pos(k.rand(20, GARDEN_W - 20), k.rand(0, GARDEN_H)),
           k.anchor("center"),
           k.z(8),
-          { vy: k.rand(8, 16), sway: k.rand(6, 14), t: k.rand(0, 6) },
+          { vy: isSnow ? k.rand(5, 11) : k.rand(8, 16), sway: k.rand(5, 12), t: k.rand(0, 6) },
         ]);
-        leaf.onUpdate(() => {
-          leaf.t += k.dt();
-          leaf.pos.y += leaf.vy * k.dt();
-          leaf.pos.x += Math.sin(leaf.t * 2) * leaf.sway * k.dt();
-          if (leaf.pos.y > GARDEN_H + 6) {
-            leaf.pos.y = -6;
-            leaf.pos.x = k.rand(20, GARDEN_W - 20);
+        p.onUpdate(() => {
+          p.t += k.dt();
+          p.pos.y += p.vy * k.dt();
+          p.pos.x += Math.sin(p.t * 2) * p.sway * k.dt();
+          if (p.pos.y > GARDEN_H + 6) {
+            p.pos.y = -6;
+            p.pos.x = k.rand(20, GARDEN_W - 20);
           }
         });
       }
@@ -241,6 +253,7 @@ export function registerGardenScene() {
       if (id && !state.memories.includes(id)) {
         state.memories.push(id);
         hud.pop(STRINGS.pops.newMemory);
+        sfx("happy");
       }
     }
 
@@ -295,10 +308,77 @@ export function registerGardenScene() {
       if (nextSeason(state.season)) k.wait(0.8, () => k.go("garden"));
     }
 
+    // ---- Winter hibernation set-up ----
+    const boxPos = k.vec2(300, 274); // matches the winter box position
+    let herbstAdvancing = false;
+
+    function addZzz() {
+      const z = k.add([
+        k.text("Zzz", { size: 9, font: "monospace" }),
+        k.color(90, 100, 130), k.pos(boxPos.x + 12, boxPos.y - 14),
+        k.anchor("center"), k.z(11), "zzz", { t: 0 },
+      ]);
+      z.onUpdate(() => {
+        z.t += k.dt();
+        z.pos.y = boxPos.y - 14 + Math.sin(z.t * 2) * 2;
+        z.opacity = 0.55 + Math.sin(z.t * 2) * 0.3;
+      });
+    }
+
+    async function playHibernation() {
+      const M = CHARACTERS.magda;
+      const T = CHARACTERS.tata;
+      const line = (c, text) => ({ name: c.name, portrait: c.portrait, text });
+      await showDialogue([
+        line(M, "So, mein Gustav. Der Winter ist da — Zeit fürs lange Schläfchen."),
+        line(T, "Ab in die Kiste, schön ins Laub gekuschelt. Da ist es mollig warm."),
+        line(M, "Schlaf schön, mein Goldstück. Wir wecken dich im Frühling. ❄️💚"),
+      ]);
+      gustav.pos.x = boxPos.x;
+      gustav.pos.y = boxPos.y;
+      gustav.asleep = true;
+      addZzz();
+      unlockMemory("winterschlaf");
+      state.flags.winterTuckSeen = true;
+      autosave();
+    }
+
+    function wakeToSpring() {
+      // loop the year: keep the keepsakes (memories) + Gustav's worn path,
+      // reset the seasonal journey so a fresh cycle can begin.
+      state.year = (state.year || 1) + 1;
+      state.season = "fruehling";
+      state.quests = {};
+      state.flags = {};
+      state.needs = { sonne: 70, snack: 70, nickerchen: 70 };
+      state.gluck = 20;
+      gustav.asleep = false;
+      saveGame();
+      k.go("garden");
+    }
+
+    function setupWinter() {
+      ensureWinterbox(); // built in Herbst; present through Winter
+      if (state.flags?.winterTuckSeen) {
+        gustav.pos.x = boxPos.x;
+        gustav.pos.y = boxPos.y;
+        gustav.asleep = true;
+        addZzz();
+      } else {
+        playHibernation();
+      }
+      const wake = makeButton(STRINGS.winter.wake, { onClick: wakeToSpring });
+      wake.style.cssText =
+        "position:absolute;left:50%;bottom:58px;transform:translateX(-50%);";
+      uiRoot.appendChild(wake);
+      const hint = document.querySelector(".gg-hint");
+      if (hint) hint.textContent = STRINGS.winter.sleeping;
+    }
+
     // ---- main update loop ----
     let teezeitPlaying = false;
     k.onUpdate(() => {
-      needs.update(gustav);
+      if (season.key !== "winter") needs.update(gustav); // Gustav hibernates
       straw.update(gustav);
       worn.update(gustav);
       hud.update(state);
@@ -375,6 +455,13 @@ export function registerGardenScene() {
         playScoop();
       }
 
+      // Herbst slides into Winter once both autumn tasks are done
+      if (state.season === "herbst" && !herbstAdvancing && familyQuestsAllDone()) {
+        herbstAdvancing = true;
+        hud.pop(STRINGS.pops.questDone);
+        k.wait(1.0, () => k.go("garden"));
+      }
+
       // Teezeit when Glück first crosses the threshold; ends the Frühling
       // chapter and slides into Sommer.
       if (!teezeitPlaying && !state.flags?.teezeitSeen && state.gluck >= TEEZEIT_GLUCK) {
@@ -392,6 +479,9 @@ export function registerGardenScene() {
     });
 
     buildDevNav(state);
+
+    // Winter set-up runs after the HUD/nav exist (it repurposes the hint line)
+    if (season.key === "winter") setupWinter();
   });
 }
 
@@ -507,6 +597,7 @@ function buildDevNav(state) {
   uiRoot.appendChild(bar);
 
   const hint = document.createElement("div");
+  hint.className = "gg-hint";
   hint.textContent = "WASD / Pfeiltasten: Gustav läuft";
   hint.style.cssText =
     "position:absolute;left:50%;bottom:14px;transform:translateX(-50%);" +
