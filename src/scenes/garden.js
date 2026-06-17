@@ -216,8 +216,17 @@ export function registerGardenScene() {
       return best;
     }
 
+    // The same Space press that closes a dialogue must not immediately re-open
+    // one: the dialogue's own keydown handler frees the UI a beat before Kaplay
+    // processes the keypress, so guard against that single re-trigger.
+    let dialogueJustClosed = false;
+
     k.onKeyPress("space", () => {
       if (isUiBusy()) return;
+      if (dialogueJustClosed) {
+        dialogueJustClosed = false;
+        return;
+      }
       const n = nearestNpc();
       if (n) talkTo(n.id);
     });
@@ -228,6 +237,9 @@ export function registerGardenScene() {
       const def = qid ? quests.QUESTS[qid] : null;
       const dkey = def ? def.dialogue || def.giver : id;
       await showDialogue(npcDialogue(dkey, q.state, q.progress, def?.target ?? 0));
+      // swallow the closing keypress; also auto-clear in case it closed by click
+      dialogueJustClosed = true;
+      k.wait(0.3, () => (dialogueJustClosed = false));
       if (!qid) return;
       if (q.state === "none") {
         quests.start(qid);
