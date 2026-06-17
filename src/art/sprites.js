@@ -1,6 +1,10 @@
 // Hand-crafted pixel-art sprites, rendered per-pixel to a tiny offscreen canvas
 // (no anti-aliasing) and registered with Kaplay. Drawn small, then crisp-scaled
 // up by the engine — proper chunky GBA/DS-era pixel art.
+import { CHARACTERS } from "../data/characters.js";
+
+const css = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+const dark = (c, a) => `rgb(${Math.max(0, c[0] - a)},${Math.max(0, c[1] - a)},${Math.max(0, c[2] - a)})`;
 
 // Render a w×h sprite by calling fn(x,y) -> css color string | null per pixel.
 function loadProcSprite(k, name, w, h, fn) {
@@ -100,6 +104,96 @@ function gustavPixel(x, y) {
   return null;
 }
 
+// --- Family members: a parametric chibi figure built from the descriptor ---
+function npcSpriteDef(id) {
+  const sp = CHARACTERS[id].sprite;
+  const broad = sp.build === "broad";
+  const tall = sp.build === "tall";
+  const W = 22;
+  const H = tall ? 38 : 34;
+  const cx = 11;
+  const half = broad ? 7 : tall ? 4 : 5.5;
+
+  const legsBot = H - 1;
+  const legTop = H - (tall ? 8 : 6);
+  const torsoBot = legTop;
+  const torsoTop = 15;
+  const cy = 9; // head centre
+  const headRx = 5.4;
+  const headRy = 6.2;
+
+  const P = {
+    skin: css(sp.skin),
+    skinSh: dark(sp.skin, 22),
+    hair: sp.hair ? css(sp.hair) : null,
+    top: css(sp.top),
+    topSh: dark(sp.top, 24),
+    sleeves: sp.sleeves ? css(sp.sleeves) : css(sp.top),
+    hasSleeves: !!sp.sleeves,
+    accent: sp.accent ? css(sp.accent) : null,
+    legs: "rgb(72,68,78)",
+    eye: "rgb(22,17,12)",
+    glasses: "rgb(50,38,22)",
+    stubble: "rgba(120,98,74,0.55)",
+    earring: "rgb(232,188,56)",
+    glassesOn: !!sp.glasses,
+    stubbleOn: !!sp.stubble,
+    earringsOn: !!sp.earrings,
+    style: sp.hairStyle,
+  };
+
+  const fn = (x, y) => {
+    const dx = x - cx;
+
+    // legs (two)
+    if (y >= legTop && y <= legsBot && ((x >= 8 && x <= 9) || (x >= 12 && x <= 13))) {
+      return P.legs;
+    }
+
+    // torso
+    if (y >= torsoTop && y <= torsoBot && Math.abs(dx) <= half) {
+      if (P.hasSleeves && Math.abs(dx) > half - 2) return P.sleeves;
+      if (P.accent && y <= torsoTop + 2) return P.accent;
+      if (Math.abs(dx) > half - 1 || y > torsoBot - 2) return P.topSh;
+      return P.top;
+    }
+    // neck
+    if (y >= torsoTop - 2 && y < torsoTop && Math.abs(dx) <= 2) return P.skin;
+
+    const inHead = (dx / headRx) ** 2 + ((y - cy) / headRy) ** 2 <= 1;
+
+    // hair: long strands down the sides
+    if (P.hair && P.style === "long" && Math.abs(dx) >= headRx - 1 && Math.abs(dx) <= headRx + 1.5 && y >= cy && y <= cy + 13) {
+      return P.hair;
+    }
+    // hair: top + frame
+    if (P.hair && P.style !== "bald") {
+      const inHalo = (dx / (headRx + 1.2)) ** 2 + ((y - (cy - 0.6)) / (headRy + 1.2)) ** 2 <= 1;
+      if (inHalo && (!inHead || y <= cy - 2.5) && y <= cy + 1) return P.hair;
+    }
+
+    if (inHead) {
+      if (P.stubbleOn && y >= cy + 2 && y <= cy + 4 && Math.abs(dx) <= 3.5) return P.stubble;
+      if (P.glassesOn && y === cy - 1 && Math.abs(dx) <= 3) return P.glasses; // brow bar
+      if (y === cy && (x === cx - 2 || x === cx + 2)) return P.eye;
+      if (y === cy + 3 && Math.abs(dx) <= 1) return P.skinSh; // soft smile
+      return P.skin;
+    }
+
+    // gold hoop earrings at the head sides
+    if (P.earringsOn && Math.abs(Math.abs(dx) - (headRx + 0.5)) < 0.9 && Math.abs(y - (cy + 2)) < 0.9) {
+      return P.earring;
+    }
+    return null;
+  };
+
+  return { name: "npc_" + id, w: W, h: H, fn };
+}
+
 export function loadGameSprites(k) {
   loadProcSprite(k, "gustav", GW, GH, gustavPixel);
+  for (const id in CHARACTERS) {
+    const d = npcSpriteDef(id);
+    loadProcSprite(k, d.name, d.w, d.h, d.fn);
+  }
 }
