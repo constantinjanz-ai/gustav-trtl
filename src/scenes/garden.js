@@ -552,19 +552,32 @@ function buildStructures() {
   }
 }
 
+// leafy clumps vs blooms vs plain objects (pots, ornaments, snow, leaves…)
+const FOLIAGE = new Set(["fig", "juniper", "cherrylaurel", "buddleia"]);
+const FLOWER = new Set([
+  "hydrangea", "cosmos", "salvia", "rose", "dahlia", "marigold",
+  "spirea", "lavender", "aster", "bergenia", "sunflower",
+]);
+
 function buildProps(season) {
   const props = [...PROPS, ...(season.extraProps || [])];
   for (const p of props) {
     const comps = [k.pos(p.x, p.y), k.anchor("center"), k.color(...p.color), k.z(5), p.kind];
     if (p.r != null) {
-      comps.unshift(k.circle(p.r));
+      if (FOLIAGE.has(p.kind)) {
+        comps.unshift(k.sprite("bush"), k.scale((p.r * 2) / 16));
+      } else if (FLOWER.has(p.kind)) {
+        comps.unshift(k.sprite("flower"), k.scale((p.r * 2) / 9));
+      } else {
+        comps.unshift(k.circle(p.r)); // plain objects keep their shape
+      }
     } else {
       comps.unshift(k.rect(p.w, p.h, { radius: 3 }));
     }
     if (p.tag) comps.push(p.tag);
     const obj = k.add(comps);
     if (p.solid) {
-      obj.use(k.area({ scale: 0.8 })); // slightly forgiving collision
+      obj.use(k.area({ scale: 0.7 })); // slightly forgiving collision
       obj.use(k.body({ isStatic: true }));
     }
   }

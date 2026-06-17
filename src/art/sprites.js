@@ -190,8 +190,47 @@ function npcSpriteDef(id) {
   return { name: "npc_" + id, w: W, h: H, fn };
 }
 
+// --- Plants: greyscale sprites tinted per-plant via Kaplay's color() ---
+// (white ~ full tint, darker greys ~ shading, so one sprite serves every hue.)
+const grey = (v) => {
+  const c = Math.max(80, Math.min(255, Math.round(v)));
+  return `rgb(${c},${c},${c})`;
+};
+
+// a shaded, lightly-textured leafy clump (16×16)
+function bushPixel(x, y) {
+  const cx = 7.5;
+  const cy = 7.5;
+  const dx = x - cx;
+  const dy = y - cy;
+  const d = Math.hypot(dx, dy);
+  if (d > 7.6) return null;
+  let v = 244 - d * 3.2 - (dx + dy) * 3.0; // bottom-right shaded, top-left lit
+  if (d > 6.9) v -= 28; // rim
+  if ((x * 3 + y * 5) % 7 === 0) v -= 26; // leaf flecks
+  if ((x * 5 + y * 2) % 9 === 0) v -= 12;
+  return grey(v);
+}
+
+// a little five/eight-petal bloom (9×9): light petals, slightly darker core
+function flowerPixel(x, y) {
+  const cx = 4;
+  const cy = 4;
+  if (Math.hypot(x - cx, y - cy) < 1.4) return grey(170); // core
+  const petals = [
+    [4, 1.4], [4, 6.6], [1.4, 4], [6.6, 4],
+    [2.1, 2.1], [5.9, 2.1], [2.1, 5.9], [5.9, 5.9],
+  ];
+  for (const [px, py] of petals) {
+    if (Math.hypot(x - px, y - py) < 1.45) return grey(252);
+  }
+  return null;
+}
+
 export function loadGameSprites(k) {
   loadProcSprite(k, "gustav", GW, GH, gustavPixel);
+  loadProcSprite(k, "bush", 16, 16, bushPixel);
+  loadProcSprite(k, "flower", 9, 9, flowerPixel);
   for (const id in CHARACTERS) {
     const d = npcSpriteDef(id);
     loadProcSprite(k, d.name, d.w, d.h, d.fn);
