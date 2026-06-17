@@ -16,6 +16,10 @@ import {
 import { spawnGustav } from "../entities/gustav.js";
 import { clearOverlay, uiRoot, makeButton } from "../ui/overlay.js";
 import { getState } from "../systems/save.js";
+import { createNeeds } from "../systems/needs.js";
+import { createStrawberries } from "../systems/strawberries.js";
+import { createWornPath } from "../systems/wornPath.js";
+import { createHud } from "../ui/hud.js";
 
 export function registerGardenScene() {
   k.scene("garden", () => {
@@ -25,15 +29,30 @@ export function registerGardenScene() {
     buildProps();
 
     const state = getState();
+
+    // worn path renders under Gustav, so build it before he spawns
+    const worn = createWornPath(k, state);
+
     const start = state.gustav?.x != null ? state.gustav : GUSTAV_START;
     const gustav = spawnGustav(k, start);
 
-    // persist Gustav's position back into the live save state as he moves
-    gustav.onUpdate(() => {
+    // systems
+    const needs = createNeeds(k, state);
+    const hud = createHud(state);
+    const straw = createStrawberries(k, state, {
+      onEat: () => needs.eatSnack(),
+    });
+
+    // one update loop drives needs, berries, the worn path and the HUD
+    k.onUpdate(() => {
+      needs.update(gustav);
+      straw.update(gustav);
+      worn.update(gustav);
+      hud.update(state);
       state.gustav = { x: Math.round(gustav.pos.x), y: Math.round(gustav.pos.y) };
     });
 
-    buildHud();
+    buildDevNav();
   });
 }
 
@@ -112,8 +131,8 @@ function buildProps() {
   }
 }
 
-function buildHud() {
-  // dev nav + a gentle control hint (the real beveled HUD lands in Checkpoint C)
+function buildDevNav() {
+  // dev nav + a gentle control hint
   const back = makeButton(STRINGS.menu.back, {
     wood: true,
     onClick: () => k.go("title"),
