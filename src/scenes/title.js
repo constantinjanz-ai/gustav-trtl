@@ -64,28 +64,14 @@ function buildBackdrop() {
     k.z(4),
   ]);
 
-  // a little Gustav placeholder waddling across the lawn
+  // a little Gustav waddling across the lawn (the real pixel sprite)
   const gus = k.add([
     k.pos(40, H - 46),
     k.anchor("center"),
     k.z(6),
     { t: 0, speed: 16, dir: 1 },
   ]);
-  // shell
-  gus.add([k.circle(13), k.color(178, 142, 70), k.anchor("center")]);
-  gus.add([
-    k.circle(13),
-    k.color(120, 92, 44),
-    k.anchor("center"),
-    k.opacity(0.0),
-  ]);
-  // head
-  gus.add([
-    k.circle(5),
-    k.color(150, 140, 120),
-    k.anchor("center"),
-    k.pos(13, 2),
-  ]);
+  gus.add([k.sprite("gustav"), k.anchor("center")]);
   gus.onUpdate(() => {
     gus.t += k.dt();
     gus.pos.x += gus.speed * gus.dir * k.dt();
