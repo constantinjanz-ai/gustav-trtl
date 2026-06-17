@@ -14,7 +14,7 @@ import {
   GUSTAV_START,
 } from "../data/garden.spring.js";
 import { spawnGustav } from "../entities/gustav.js";
-import { spawnMagda } from "../entities/npc.js";
+import { spawnCharacter } from "../entities/npc.js";
 import { clearOverlay, uiRoot, makeButton, toast, isUiBusy } from "../ui/overlay.js";
 import { getState, saveGame } from "../systems/save.js";
 import { createNeeds } from "../systems/needs.js";
@@ -26,8 +26,8 @@ import { showDialogue } from "../ui/dialogue.js";
 import { openScrapbook } from "../ui/scrapbook.js";
 import { playTeezeit } from "../ui/teezeit.js";
 import { CHARACTERS } from "../data/characters.js";
-import { magdaDialogue } from "../data/dialogue.js";
-import { getSeason, nextSeason } from "../data/seasons.js";
+import { npcDialogue } from "../data/dialogue.js";
+import { getSeason, nextSeason, SEASON_ORDER } from "../data/seasons.js";
 import { showChapterCard } from "../ui/chapterCard.js";
 
 const TALK_DIST = 30;
@@ -67,8 +67,10 @@ export function registerGardenScene() {
     const start = state.gustav?.x != null ? state.gustav : GUSTAV_START;
     const gustav = spawnGustav(k, start);
 
-    // Magda on the terrace
-    const magda = spawnMagda(k, CHARACTERS.magda.spawn);
+    // family members present in this season
+    const npcs = Object.values(CHARACTERS)
+      .filter((c) => SEASON_ORDER.indexOf(c.appearsFrom) <= SEASON_ORDER.indexOf(season.key))
+      .map((c) => ({ id: c.id, obj: spawnCharacter(k, c.id, c.spawn) }));
 
     // systems
     const needs = createNeeds(k, state, { sunFillMul: season.sunFillMul });
@@ -83,23 +85,66 @@ export function registerGardenScene() {
       },
     });
 
-    // ---- interaction: talk to Magda with [Space] when close ----
+    // ---- quest props that depend on quest state (rebuilt on scene entry) ----
+    // Maria's Lieblingsstein: present while her quest is active and unfound.
+    let pebble = null;
+    function ensurePebble() {
+      if (pebble) return;
+      if (quests.get("maria_pebble").state === "active") {
+        pebble = k.add([
+          k.circle(3.6), k.color(150, 148, 140), k.outline(1, k.rgb(108, 106, 98)),
+          k.pos(62, 244), k.anchor("center"), k.z(6), "pebble",
+        ]);
+      }
+    }
+    // Tata's basking ramp: appears once his quest has started.
+    let ramp = null;
+    function ensureRamp() {
+      if (ramp) return;
+      if (quests.get("tata_ramp").state !== "none") {
+        ramp = k.add([
+          k.rect(36, 13, { radius: 3 }), k.color(150, 108, 60),
+          k.outline(1, k.rgb(108, 78, 42)), k.pos(206, 276), k.anchor("center"), k.z(4), "ramp",
+        ]);
+        ramp.add([k.rect(36, 3), k.color(176, 130, 76), k.anchor("top"), k.pos(0, -6.5)]);
+      }
+    }
+    ensurePebble();
+    ensureRamp();
+
+    // ---- interaction: talk to the nearest family member with [Space] ----
+    const NPC_QUEST = { magda: "magda_strawberries", maria: "maria_pebble", tata: "tata_ramp" };
     const prompt = makePrompt();
+
+    function nearestNpc() {
+      let best = null;
+      let bestDist = TALK_DIST;
+      for (const n of npcs) {
+        const d = gustav.pos.dist(n.obj.pos);
+        if (d <= bestDist) { bestDist = d; best = n; }
+      }
+      return best;
+    }
 
     k.onKeyPress("space", () => {
       if (isUiBusy()) return;
-      if (gustav.pos.dist(magda.pos) <= TALK_DIST) talkToMagda();
+      const n = nearestNpc();
+      if (n) talkTo(n.id);
     });
 
-    async function talkToMagda() {
-      const q = quests.get("magda_strawberries");
-      await showDialogue(
-        magdaDialogue(q.state, q.progress, quests.QUESTS.magda_strawberries.target),
-      );
+    async function talkTo(id) {
+      const qid = NPC_QUEST[id];
+      const q = qid ? quests.get(qid) : { state: "none", progress: 0 };
+      const target = qid ? quests.QUESTS[qid].target : 0;
+      await showDialogue(npcDialogue(id, q.state, q.progress, target));
+      if (!qid) return;
       if (q.state === "none") {
-        quests.start("magda_strawberries");
+        quests.start(qid);
+        if (id === "maria") ensurePebble(); // the stone is "out there" to find
+        if (id === "tata") ensureRamp(); // Tata builds the ramp as he offers it
+        autosave();
       } else if (q.state === "ready") {
-        const def = quests.complete("magda_strawberries");
+        const def = quests.complete(qid);
         if (def) {
           needs.addGluck(def.rewardGluck);
           unlockMemory(def.rewardMemory);
@@ -130,9 +175,22 @@ export function registerGardenScene() {
       hud.setTask(quests.activeLabel());
       state.gustav = { x: Math.round(gustav.pos.x), y: Math.round(gustav.pos.y) };
 
-      // proximity prompt
-      const near = !isUiBusy() && gustav.pos.dist(magda.pos) <= TALK_DIST;
+      // proximity prompt (nearest family member)
+      const near = !isUiBusy() && nearestNpc();
       prompt.style.opacity = near ? "1" : "0";
+
+      // Maria's pebble — found by waddling onto it
+      if (pebble && gustav.pos.dist(pebble.pos) < 12) {
+        k.destroy(pebble);
+        pebble = null;
+        if (quests.progress("maria_pebble")) hud.pop(STRINGS.pops.found);
+        autosave();
+      }
+      // Tata's ramp — "tested" by stepping onto it
+      if (ramp && quests.get("tata_ramp").state === "active" && gustav.pos.dist(ramp.pos) < 16) {
+        if (quests.progress("tata_ramp")) hud.pop(STRINGS.pops.questDone);
+        autosave();
+      }
 
       // Teezeit when Glück first crosses the threshold; ends the Frühling
       // chapter and slides into Sommer.

@@ -56,6 +56,7 @@ export const STRINGS = {
   pops: {
     newMemory: "Neue Erinnerung! ✨",
     questDone: "Aufgabe geschafft! 🍓",
+    found: "Gefunden! 🪨",
   },
 };
 

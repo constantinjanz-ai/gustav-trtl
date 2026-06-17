@@ -15,6 +15,20 @@ export const MEMORIES = [
     icon: "🍵",
     photo: null, // TODO(M5)
   },
+  {
+    id: "lieblingsstein",
+    title: "Der Lieblingsstein",
+    caption: "Gustav findet seinen glatten, warmen Lieblingsstein wieder — Maria strahlt.",
+    icon: "🪨",
+    photo: null, // TODO(M5)
+  },
+  {
+    id: "sonnenrampe",
+    title: "Tatas Sonnenrampe",
+    caption: "Tata baut eine Rampe, und Gustav thront in der schönsten Sonnenecke.",
+    icon: "☀️",
+    photo: null, // TODO(M5)
+  },
 ];
 
 export function getMemory(id) {

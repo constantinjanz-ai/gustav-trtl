@@ -12,6 +12,19 @@ export function createQuests(state) {
     if (get(id).state === "none") set(id, { state: "active", progress: 0 });
   }
 
+  // Generic progress for non-harvest quests (find_item, reach_spot, ...).
+  // Returns true if this advance just made the quest 'ready'.
+  function progress(id, amount = 1) {
+    const def = QUESTS[id];
+    const q = get(id);
+    if (q.state !== "active") return false;
+    q.progress = Math.min(def.target, q.progress + amount);
+    const ready = q.progress >= def.target;
+    if (ready) q.state = "ready";
+    set(id, q);
+    return ready;
+  }
+
   // Called whenever Gustav eats a strawberry. Advances any active harvest quest.
   // Returns the quest id that just became 'ready', or null.
   function onBerryEaten() {
@@ -52,5 +65,5 @@ export function createQuests(state) {
     return null;
   }
 
-  return { get, start, onBerryEaten, complete, activeLabel, QUESTS };
+  return { get, start, progress, onBerryEaten, complete, activeLabel, QUESTS };
 }
