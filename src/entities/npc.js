@@ -28,12 +28,12 @@ export function spawnCharacter(k, id, pos) {
   // the pixel-art body
   const vis = npc.add([k.sprite("npc_" + id), k.anchor("bot"), k.pos(0, 1)]);
 
-  // nametag: a small label + a downward pointer, floating above the head
-  const labelW = c.name.length * 5 + 10;
-  const tagY = -spriteH - 7;
-  npc.add([k.rect(labelW, 12, { radius: 4 }), k.color(255, 250, 236), k.outline(1, k.rgb(122, 92, 52)), k.anchor("center"), k.pos(0, tagY), k.z(12)]);
-  npc.add([k.text(c.name, { size: 8 }), k.color(74, 52, 30), k.anchor("center"), k.pos(0, tagY), k.z(13)]);
-  npc.add([k.polygon([k.vec2(-3.5, 0), k.vec2(3.5, 0), k.vec2(0, 4)]), k.color(255, 250, 236), k.outline(1, k.rgb(122, 92, 52)), k.anchor("top"), k.pos(0, tagY + 5.5), k.z(12)]);
+  // nametag: just the name (no box) with a crisp dark outline for readability
+  const tagY = -spriteH - 5;
+  for (const [dx, dy] of [[0.8, 0.8], [-0.8, 0.8], [0.8, -0.8], [-0.8, -0.8]]) {
+    npc.add([k.text(c.name, { size: 8 }), k.color(40, 30, 18), k.anchor("center"), k.pos(dx, tagY + dy), k.z(12)]);
+  }
+  npc.add([k.text(c.name, { size: 8 }), k.color(255, 252, 242), k.anchor("center"), k.pos(0, tagY), k.z(13)]);
 
   // gentle idle bob (only the body bobs; the nametag stays steady)
   npc.onUpdate(() => {

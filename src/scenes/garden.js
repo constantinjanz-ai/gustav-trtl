@@ -528,6 +528,32 @@ function buildGround(season) {
     ]);
   }
 
+  // grass texture: scattered blades + clover specks across the lawn
+  const dark = season.lawn.map((v, i) => Math.max(0, v - [26, 22, 30][i]));
+  const lite = season.lawn.map((v, i) => Math.min(255, v + [16, 16, 10][i]));
+  const tufts = [];
+  for (let i = 0; i < 230; i++) {
+    tufts.push({
+      x: 44 + Math.random() * 392,
+      y: 24 + Math.random() * 242,
+      tall: 1.8 + Math.random() * 1.4,
+      lite: Math.random() < 0.4,
+      clover: Math.random() < 0.1,
+    });
+  }
+  const grass = k.add([k.z(1.5), "grassdetail"]);
+  grass.onDraw(() => {
+    for (const t of tufts) {
+      if (t.clover) {
+        for (const [ox, oy] of [[-0.9, 0], [0.9, 0], [0, -0.9]]) {
+          k.drawCircle({ pos: k.vec2(t.x + ox, t.y + oy), radius: 0.85, color: k.rgb(...lite), opacity: 0.6 });
+        }
+      } else {
+        k.drawRect({ pos: k.vec2(t.x, t.y), width: 1, height: t.tall, color: k.rgb(...(t.lite ? lite : dark)), opacity: 0.5 });
+      }
+    }
+  });
+
   // planted beds (bark mulch) down the long borders
   for (const b of [ZONES.leftBed, ZONES.rightBed]) {
     k.add([k.rect(b.w, b.h), k.pos(b.x, b.y), k.color(...PALETTE.bed), k.opacity(0.85), k.z(2)]);
@@ -559,16 +585,37 @@ function buildStructures() {
     if (s.solid) obj.use(k.area()), obj.use(k.body({ isStatic: true }));
   }
 
-  // a hint of patio doors on the house wall
+  // detailed patio doors: white frame, glass, mullion + half-lowered shutter
   for (let i = 0; i < 3; i++) {
-    k.add([
-      k.rect(70, 14),
-      k.pos(70 + i * 130, 302),
-      k.color(...PALETTE.houseDoor),
-      k.opacity(0.9),
-      k.z(6),
-    ]);
+    const cx = 120 + i * 120;
+    k.add([k.rect(86, 18, { radius: 1 }), k.pos(cx, 310), k.anchor("center"), k.color(226, 228, 222), k.z(6)]); // frame
+    k.add([k.rect(78, 14), k.pos(cx, 311), k.anchor("center"), k.color(150, 180, 192), k.z(6)]); // glass
+    k.add([k.rect(2, 14), k.pos(cx, 311), k.anchor("center"), k.color(226, 228, 222), k.z(7)]); // mullion
+    // roller shutter (Rolladen), half lowered
+    k.add([k.rect(82, 6), k.pos(cx, 305), k.anchor("center"), k.color(150, 152, 150), k.z(7)]);
+    k.add([k.rect(82, 1), k.pos(cx, 304), k.anchor("center"), k.color(122, 124, 122), k.opacity(0.7), k.z(7)]);
+    k.add([k.rect(82, 1), k.pos(cx, 306), k.anchor("center"), k.color(122, 124, 122), k.opacity(0.7), k.z(7)]);
   }
+
+  // fence detail: anthracite Doppelstabmatten — vertical bars + two rails
+  const fence = k.add([k.z(7), "fencedetail"]);
+  fence.onDraw(() => {
+    const bar = k.rgb(90, 94, 100);
+    const rail = k.rgb(44, 47, 51);
+    for (let x = 6; x <= 474; x += 7) {
+      if (x > 198 && x < 282) continue; // skip the gate gap
+      k.drawRect({ pos: k.vec2(x, 9), width: 1.4, height: 8, color: bar });
+    }
+    for (const [x0, x1] of [[0, 200], [280, 480]]) {
+      k.drawRect({ pos: k.vec2(x0, 9.5), width: x1 - x0, height: 1.2, color: rail });
+      k.drawRect({ pos: k.vec2(x0, 15.5), width: x1 - x0, height: 1.2, color: rail });
+    }
+    // side runs: horizontal rungs
+    for (let y = 24; y <= 292; y += 8) {
+      k.drawRect({ pos: k.vec2(2.5, y), width: 6, height: 1.2, color: bar });
+      k.drawRect({ pos: k.vec2(471.5, y), width: 6, height: 1.2, color: bar });
+    }
+  });
 }
 
 // leafy clumps vs blooms vs plain objects (pots, ornaments, snow, leaves…)
