@@ -185,6 +185,19 @@ const DIALOGUE = {
   },
 };
 
+// One-time welcome + tutorial at the very start of a new game (Magda guides).
+export function introDialogue() {
+  const l = (text) => ({ name: CHARACTERS.magda.name, portrait: CHARACTERS.magda.portrait, text });
+  return [
+    l("Hallo, ich bin Magda! 🐢 Mit den Pfeiltasten oder WASD wackelt Gustav durch den Garten."),
+    l("Oben rechts siehst du, wie es ihm geht: ☀️ Sonne, 🍓 Snack, 💤 Nickerchen — und sein 🌸 Glück."),
+    l("☀️ Sonne tankt er beim Sonnenbad auf der Terrasse. 🍓 Snack gibt's beim Naschen der Erdbeeren am Zaun."),
+    l("💤 Fürs Nickerchen bleibt er einfach kurz stehen — auf der Holzterrasse träumt es sich am schönsten."),
+    l("Geht es ihm rundum gut, wächst sein 🌸 Glück. Das bringt neue Erinnerungen ins Album und führt euch durch die Jahreszeiten."),
+    l("Reden kannst du mit uns per [Leertaste]. Komm, sprich mich an — ich hab eine kleine Aufgabe für dich. 💚"),
+  ];
+}
+
 export function npcDialogue(id, questState, progress, target) {
   const fn = DIALOGUE[id];
   return fn ? fn(questState, progress, target) : [];

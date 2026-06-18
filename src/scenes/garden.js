@@ -27,7 +27,7 @@ import { showDialogue } from "../ui/dialogue.js";
 import { openScrapbook } from "../ui/scrapbook.js";
 import { playTeezeit } from "../ui/teezeit.js";
 import { CHARACTERS } from "../data/characters.js";
-import { npcDialogue } from "../data/dialogue.js";
+import { npcDialogue, introDialogue } from "../data/dialogue.js";
 import { questForGiver } from "../data/quests.js";
 import { getSeason, nextSeason, SEASON_ORDER } from "../data/seasons.js";
 import { showChapterCard } from "../ui/chapterCard.js";
@@ -67,13 +67,12 @@ export function registerGardenScene() {
     buildStructures();
     buildProps(season);
 
-    // chapter card the first time a season is entered
+    // chapter card the first time a season is entered (shown via the intro
+    // sequence at the end of setup, so it can chain into the tutorial)
     state.flags = state.flags || {};
     const seenKey = "season_" + season.key + "_seen";
-    if (!state.flags[seenKey]) {
-      state.flags[seenKey] = true;
-      showChapterCard(season);
-    }
+    const playCard = !state.flags[seenKey];
+    if (playCard) state.flags[seenKey] = true;
 
     // ambient drifting particles: autumn leaves / winter snow (decorative)
     if (season.key === "herbst" || season.key === "winter") {
@@ -501,6 +500,18 @@ export function registerGardenScene() {
 
     // Winter set-up runs after the HUD/nav exist (it repurposes the hint line)
     if (season.key === "winter") setupWinter();
+
+    // Intro sequence: chapter card, then a one-time welcome/tutorial in Frühling
+    (async () => {
+      if (playCard) await showChapterCard(season);
+      if (season.key === "fruehling" && !state.tutorialSeen) {
+        state.tutorialSeen = true;
+        await showDialogue(introDialogue());
+        dialogueJustClosed = true; // don't let the closing keypress open a talk
+        k.wait(0.3, () => (dialogueJustClosed = false));
+        autosave();
+      }
+    })();
   });
 }
 
