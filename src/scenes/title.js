@@ -65,6 +65,28 @@ function buildBackdrop() {
     k.z(4),
   ]);
 
+  // grass texture across the band (matches the in-game lawn)
+  const tufts = [];
+  for (let i = 0; i < 140; i++) {
+    tufts.push({ x: k.rand(6, W - 6), y: k.rand(H - 124, H - 6), lite: k.rand() < 0.4 });
+  }
+  const grass = k.add([k.z(4.5)]);
+  grass.onDraw(() => {
+    for (const t of tufts) {
+      k.drawRect({ pos: k.vec2(t.x, t.y), width: 1, height: 2.4, color: t.lite ? k.rgb(139, 192, 102) : k.rgb(97, 150, 60), opacity: 0.5 });
+    }
+  });
+
+  // a few pixel-art bushes + blooms (same sprites as the garden)
+  const bushes = [[34, H - 100, 17, [74, 120, 60]], [110, H - 112, 14, [96, 138, 120]], [W - 52, H - 96, 20, [74, 120, 60]], [W - 140, H - 110, 13, [150, 110, 180]]];
+  for (const [x, y, r, col] of bushes) {
+    k.add([k.sprite("bush"), k.color(...col), k.scale((r * 2) / 16), k.pos(x, y), k.anchor("center"), k.z(5)]);
+  }
+  const blooms = [[78, H - 66, [232, 120, 170]], [186, H - 86, [228, 96, 120]], [W - 96, H - 64, [240, 160, 50]], [W - 188, H - 80, [150, 120, 200]]];
+  for (const [x, y, col] of blooms) {
+    k.add([k.sprite("flower"), k.color(...col), k.scale(10 / 9), k.pos(x, y), k.anchor("center"), k.z(5)]);
+  }
+
   // a little Gustav waddling across the lawn (the real pixel sprite)
   const gus = k.add([
     k.pos(40, H - 46),
