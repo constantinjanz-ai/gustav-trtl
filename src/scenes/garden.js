@@ -475,9 +475,15 @@ export function registerGardenScene() {
         k.wait(1.0, () => k.go("garden"));
       }
 
-      // Teezeit when Glück first crosses the threshold; ends the Frühling
-      // chapter and slides into Sommer.
-      if (!teezeitPlaying && !state.flags?.teezeitSeen && state.gluck >= TEEZEIT_GLUCK) {
+      // Teezeit ends the Frühling chapter and slides into Sommer — but only once
+      // Magda's quest is actually done (so it can't fire mid-first-mission) and
+      // Glück has crossed the threshold.
+      if (
+        !teezeitPlaying &&
+        !state.flags?.teezeitSeen &&
+        quests.get("magda_strawberries").state === "done" &&
+        state.gluck >= TEEZEIT_GLUCK
+      ) {
         teezeitPlaying = true;
         playTeezeit(k, state).then(() => {
           hud.pop(STRINGS.pops.newMemory);

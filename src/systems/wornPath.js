@@ -1,16 +1,17 @@
 // The worn dirt-path mechanic — the most "Gustav" thing in the game.
-// As Gustav walks, the grass under him gradually wears to bare dirt. Wear
-// accumulates per grid cell, persists (state.worn), and only ever grows — a
-// slowly-building record of where Gustav has been, heaviest along his patrol.
+// As Gustav walks, the grass under him wears to bare dirt (per grid cell,
+// persisted in state.worn). Just like the real garden, paths only stay bare if
+// he keeps using them — untrodden grass regrows very slowly, so upholding a
+// path takes work.
 import { GARDEN_W, GARDEN_H } from "../data/garden.spring.js";
 
 const CELL = 10; // logical px per wear cell
-const COLS = Math.ceil(GARDEN_W / CELL);
 const DIRT = [150, 120, 84];
 
 // How fast grass wears. Centre cell wears faster than the brushed neighbours.
 const WEAR_CENTRE = 0.55; // per second standing/passing
 const WEAR_NEIGHBOUR = 0.22;
+const REGROW = 0.007; // per second — grass slowly heals where Gustav isn't walking
 const SHOW_AT = 0.06;
 
 export function createWornPath(k, state) {
@@ -41,16 +42,28 @@ export function createWornPath(k, state) {
   });
 
   function update(gustav) {
-    if (!gustav.moving) return;
     const dt = k.dt();
-    const c = Math.floor(gustav.pos.x / CELL);
-    const r = Math.floor(gustav.pos.y / CELL);
-    addWear(c, r, WEAR_CENTRE * dt);
-    // brush the 4-neighbours a little so the path has width
-    addWear(c - 1, r, WEAR_NEIGHBOUR * dt);
-    addWear(c + 1, r, WEAR_NEIGHBOUR * dt);
-    addWear(c, r - 1, WEAR_NEIGHBOUR * dt);
-    addWear(c, r + 1, WEAR_NEIGHBOUR * dt);
+    if (dt <= 0) return;
+
+    // slow regrowth everywhere — untended paths heal over time
+    const heal = REGROW * dt;
+    for (const k0 in worn) {
+      const v = worn[k0] - heal;
+      if (v <= 0.001) delete worn[k0];
+      else worn[k0] = v;
+    }
+
+    // walking wears the grass faster than it heals, so used paths persist/deepen
+    if (gustav.moving) {
+      const c = Math.floor(gustav.pos.x / CELL);
+      const r = Math.floor(gustav.pos.y / CELL);
+      addWear(c, r, WEAR_CENTRE * dt);
+      // brush the 4-neighbours a little so the path has width
+      addWear(c - 1, r, WEAR_NEIGHBOUR * dt);
+      addWear(c + 1, r, WEAR_NEIGHBOUR * dt);
+      addWear(c, r - 1, WEAR_NEIGHBOUR * dt);
+      addWear(c, r + 1, WEAR_NEIGHBOUR * dt);
+    }
   }
 
   return { update };

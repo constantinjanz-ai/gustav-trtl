@@ -16,7 +16,7 @@ export function spawnGustav(k, start) {
     k.z(10),
     "gustav",
     {
-      facing: 1, // 1 = right, -1 = left
+      faceAngle: 0, // sprite head points east(0°); rotates to face movement
       moving: false,
       t: 0,
     },
@@ -44,7 +44,9 @@ export function spawnGustav(k, start) {
     if (gustav.moving) {
       const v = dir.unit().scale(SPEED);
       gustav.move(v);
-      if (dir.x !== 0) gustav.facing = dir.x > 0 ? 1 : -1;
+      // head/body faces the walking direction, snapped to 8 compass directions
+      const raw = (Math.atan2(dir.y, dir.x) * 180) / Math.PI;
+      gustav.faceAngle = Math.round(raw / 45) * 45;
       gustav.t += k.dt();
     }
 
@@ -52,9 +54,6 @@ export function spawnGustav(k, start) {
     // minY can be lowered during the gate-escape gag so he can slip out the top.
     gustav.pos.x = k.clamp(gustav.pos.x, 16, GARDEN_W - 16);
     gustav.pos.y = k.clamp(gustav.pos.y, gustav.minY ?? 16, GARDEN_H - 16);
-
-    // face the way we walk
-    vis.flipX = gustav.facing < 0;
 
     if (gustav.asleep) {
       // gentle breathing while hibernating
@@ -64,9 +63,9 @@ export function spawnGustav(k, start) {
       vis.scale = k.vec2(1, breath);
       vis.pos.y = 0;
     } else {
-      // waddle: gentle body tilt + head-bob while walking
-      const wobble = gustav.moving ? Math.sin(gustav.t * 9) : 0;
-      vis.angle = wobble * 5;
+      // face the walked direction + a gentle waddle tilt; bob the body
+      const wobble = gustav.moving ? Math.sin(gustav.t * 9) * 5 : 0;
+      vis.angle = gustav.faceAngle + wobble;
       vis.scale = k.vec2(1, 1);
       vis.pos.y = gustav.moving ? Math.sin(gustav.t * 9) * 0.6 : 0;
     }
